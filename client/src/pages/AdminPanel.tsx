@@ -20,7 +20,9 @@ export default function AdminPanel() {
 
   // Form states
   const [newCat, setNewCat] = useState('');
-  const [newProd, setNewProd] = useState({ name: '', price: '', category_id: '', description: '' });
+  const [newProd, setNewProd] = useState({ name: '', price: '', category_id: '', description: '', extras: [] as any[] });
+  const [tempExtraName, setTempExtraName] = useState('');
+  const [tempExtraPrice, setTempExtraPrice] = useState('');
 
   const token = localStorage.getItem('token');
   const headers = { 'Authorization': `Bearer ${token}` };
@@ -65,7 +67,8 @@ export default function AdminPanel() {
   const addProduct = async (e:any) => {
     e.preventDefault();
     await fetch('/api/products', { method: 'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(newProd) });
-    setNewProd({ name: '', price: '', category_id: '', description: '' });
+    setNewProd({ name: '', price: '', category_id: '', description: '', extras: [] });
+    // setTempExtraName(''); setTempExtraPrice('');
     fetchData();
   };
 
@@ -381,8 +384,30 @@ export default function AdminPanel() {
                           </select>
                         </div>
                         
-                        <textarea placeholder="Ingredientes e descrição deliciosa..." value={newProd.description} onChange={e=>setNewProd({...newProd, description: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-medium text-slate-700 h-32 resize-none" />
+                        <textarea placeholder="Ingredientes e descrição deliciosa..." value={newProd.description} onChange={e=>setNewProd({...newProd, description: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-medium text-slate-700 h-24 resize-none" />
                         
+                        <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4">
+                           <p className="text-sm font-bold text-slate-600 mb-3">Oferecer Adicionais (Bacon, Cheddar...) no Robô</p>
+                           <div className="flex gap-2">
+                              <input type="text" placeholder="Nome" value={tempExtraName} onChange={e=>setTempExtraName(e.target.value)} className="flex-1 p-2 border border-slate-200 rounded-lg text-sm" />
+                              <input type="number" placeholder="R$ 0.00" value={tempExtraPrice} onChange={e=>setTempExtraPrice(e.target.value)} className="w-24 p-2 border border-slate-200 rounded-lg text-sm" />
+                              <button type="button" onClick={()=>{
+                                if(tempExtraName && tempExtraPrice) {
+                                   setNewProd({...newProd, extras: [...newProd.extras, {name: tempExtraName, price: tempExtraPrice}]});
+                                   setTempExtraName(''); setTempExtraPrice('');
+                                }
+                              }} className="bg-green-500 text-white font-bold px-3 border border-slate-200 rounded-lg hover:bg-green-600 text-sm">Add</button>
+                           </div>
+                           {newProd.extras.length > 0 && <div className="flex flex-wrap gap-2 mt-3">
+                              {newProd.extras.map((ex:any, i:number)=>(
+                                 <span key={i} className="bg-white border border-slate-200 text-xs font-bold text-slate-700 px-2 py-1 rounded-md flex items-center gap-1">
+                                   {ex.name} (+R$ {parseFloat(ex.price).toFixed(2)}) 
+                                   <span className="text-red-500 cursor-pointer p-0.5 hover:bg-red-50 rounded" onClick={()=>setNewProd({...newProd, extras: newProd.extras.filter((_, idx)=>idx!==i)})}>x</span>
+                                 </span>
+                              ))}
+                           </div>}
+                        </div>
+
                         <button className="w-full bg-orange-500 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-colors">
                           Colocar à Venda!
                         </button>

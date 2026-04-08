@@ -15,6 +15,11 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const sessions = new Map<string, WASocket>();
 const qrCodes = new Map<string, string>();
 
+// Bot States
+const botMemory = new Map<string, any>(); 
+// Key: remoteJid
+// Value: { step: number, cart: any[], categoryId?: string, productId?: string, finalTotal: number, address?: string }
+
 export function getLatestQR(tenantId: string) {
     return qrCodes.get(tenantId);
 }
@@ -23,7 +28,7 @@ export async function humanizedSendMessage(sock: WASocket, jid: string, content:
     try {
         if (content.text) {
             await sock.sendPresenceUpdate('composing', jid);
-            const typingTime = Math.min(Math.max(content.text.length * 15, 1500), 5000);
+            const typingTime = Math.min(Math.max(content.text.length * 10, 1000), 3000);
             await delay(typingTime);
             await sock.sendPresenceUpdate('paused', jid);
         }
@@ -60,11 +65,7 @@ export const reconnectSessions = async () => {
 export const initWhatsApp = async (tenantId: string, onQr?: (qr: string) => void, onStatus?: (status: string) => void) => {
     const existingSession = sessions.get(tenantId);
     if (existingSession) {
-        try {
-            existingSession.end(undefined);
-            existingSession.ev.removeAllListeners('messages.upsert');
-            existingSession.ev.removeAllListeners('connection.update');
-        } catch (e) { }
+        try { existingSession.end(undefined); } catch (e) { }
         sessions.delete(tenantId);
     }
 
@@ -106,8 +107,7 @@ export const initWhatsApp = async (tenantId: string, onQr?: (qr: string) => void
 
             if (statusCode === 401 || statusCode === 403 || statusCode === 405) {
                 try {
-                    const sessionDir = path.join(process.cwd(), 'sessions', tenantId);
-                    if (fs.existsSync(sessionDir)) fs.rmSync(sessionDir, { recursive: true, force: true });
+                    if (fs.existsSync(authPath)) fs.rmSync(authPath, { recursive: true, force: true });
                 } catch (e) { }
             }
 
@@ -169,110 +169,238 @@ export const sendMessageToJid = async (tenantId: string, jid: string, text: stri
         targetJid = cleanNumber + '@s.whatsapp.net';
     }
 
-    const result = await humanizedSendMessage(sock, targetJid, { text });
-
-    let phone = targetJid.split('@')[0].replace(/\D/g, '');
-    let customer = await prisma.customer.findFirst({
-        where: { tenant_id: tenantId, phone: { contains: phone.slice(-8) } }
-    });
-
-    if (customer && !customer.whatsapp_jid) {
-        await prisma.customer.update({
-            where: { id: customer.id },
-            data: { whatsapp_jid: targetJid }
-        });
-    }
-
-    await prisma.chatMessage.create({
-        data: {
-            tenant_id: tenantId,
-            content: text,
-            from_me: true,
-            jid: targetJid,
-            customer_id: customer?.id,
-            type: 'text'
-        }
-    });
-
-    return result;
+    return await humanizedSendMessage(sock, targetJid, { text });
 };
 
+// BOT FLUX LOGIC
 async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
     try {
         if (!msg.message || !msg.key.remoteJid || msg.key.remoteJid === 'status@broadcast') return;
         const remoteJid = msg.key.remoteJid;
-        if (remoteJid.endsWith('@newsletter') || remoteJid.endsWith('@broadcast')) return;
+        if (remoteJid.endsWith('@newsletter') || remoteJid.endsWith('@broadcast') || remoteJid.includes('@g.us')) return;
 
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.buttonsResponseMessage?.selectedButtonId || msg.message.listResponseMessage?.title || (msg.message.imageMessage ? "[Imagem]" : null);
         const senderName = msg.pushName || "Cliente";
         if (!text) return;
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { id: tenantId }
-        });
-        if (!tenant) return;
+        const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+        if (!tenant || tenant.status === 'BLOCKED') return;
 
-        let remoteJidToIdentify = remoteJid;
-        if (remoteJid.endsWith('@lid') && msg.key.participant && !msg.key.participant.endsWith('@lid')) {
-            remoteJidToIdentify = msg.key.participant;
-        }
-
-        const remotePhone = remoteJidToIdentify.split(':')[0].split('@')[0].replace(/\D/g, '');
-        const remoteLast8 = remotePhone.slice(-8);
-
+        let remotePhone = remoteJid.split('@')[0].replace(/\D/g, '');
         let customer = await prisma.customer.findFirst({
-            where: { tenant_id: tenantId, OR: [{ whatsapp_jid: remoteJid }, { whatsapp_jid: remoteJidToIdentify }] }
+            where: { tenant_id: tenantId, whatsapp_jid: remoteJid }
         });
 
         if (!customer) {
-            const allCustomers = await prisma.customer.findMany({ where: { tenant_id: tenantId } });
-            customer = allCustomers.find(c => {
-                const dbPhone = c.phone.replace(/\D/g, '');
-                return (dbPhone === remotePhone || (dbPhone.slice(-8) === remoteLast8 && dbPhone.slice(-8).length >= 8));
-            }) || null;
+            customer = await prisma.customer.create({
+                data: {
+                    tenant_id: tenantId, phone: remotePhone,
+                    name: senderName !== "Cliente" ? senderName : "Cliente " + remotePhone,
+                    whatsapp_jid: remoteJid
+                }
+            });
+        }
+        if (customer.bot_paused) return;
 
-            if (!customer) {
-                customer = await prisma.customer.create({
-                    data: {
-                        tenant_id: tenantId,
-                        phone: remotePhone,
-                        name: senderName !== "Cliente" ? senderName : "Cliente " + remotePhone,
-                        whatsapp_jid: remoteJid
+        // BOT STATE MACHINE
+        let mem = botMemory.get(remoteJid);
+        if (!mem || text.toLowerCase().trim() === 'oi' || text.toLowerCase().trim() === 'ola' || text.toLowerCase().trim() === 'voltar') {
+            mem = { step: 0, cart: [], categoryId: null, productId: null, finalTotal: 0, address: null, extras: [] };
+            botMemory.set(remoteJid, mem);
+        }
+
+        const input = text.trim();
+
+        // Step 0: Welcome & Categories
+        if (mem.step === 0) {
+            const categories = await prisma.category.findMany({ where: { tenant_id: tenantId, active: true } });
+            if (categories.length === 0) {
+                await humanizedSendMessage(sock, remoteJid, { text: `Desculpe, nosso cardápio está sendo atualizado no momento.` });
+                return;
+            }
+            let reply = `🍔 Olá *${customer.name.split(' ')[0]}*! Somos da *${tenant.name}*!\n\n🤖 Eu sou o Garçom Virtual e vou anotar seu pedido de forma 100% automática!\n\n*Digite o NÚMERO da categoria que deseja:*👇\n\n`;
+            categories.forEach((cat, index) => {
+                reply += `*${index + 1}.* ${cat.name}\n`;
+            });
+            mem.categories = categories;
+            mem.step = 1;
+            botMemory.set(remoteJid, mem);
+            await humanizedSendMessage(sock, remoteJid, { text: reply });
+            return;
+        }
+
+        // Step 1: Show Products in selected Category
+        if (mem.step === 1) {
+            const index = parseInt(input) - 1;
+            if (isNaN(index) || !mem.categories[index]) {
+                await humanizedSendMessage(sock, remoteJid, { text: `Opção inválida. Digite apenas o NÚMERO correspondente.` });
+                return;
+            }
+            const cat = mem.categories[index];
+            const products = await prisma.product.findMany({ where: { category_id: cat.id, active: true }, include: { extras: true } });
+            
+            if (products.length === 0) {
+                await humanizedSendMessage(sock, remoteJid, { text: `Nenhum lanche nesta categoria ainda. Digite 0 para voltar.` });
+                mem.step = 0;
+                botMemory.set(remoteJid, mem);
+                return;
+            }
+
+            let reply = `📋 *${cat.name.toUpperCase()}*\nEscolha seu lanche digitando o NÚMERO:\n\n`;
+            products.forEach((prod, idx) => {
+                reply += `*${idx + 1}.* ${prod.name} - R$ ${prod.price.toFixed(2)}\n_${prod.description || ''}_\n\n`;
+            });
+            reply += `\n*0.* Voltar ao Menu Principal`;
+            mem.products = products;
+            mem.step = 2;
+            botMemory.set(remoteJid, mem);
+            await humanizedSendMessage(sock, remoteJid, { text: reply });
+            return;
+        }
+
+        // Step 2: Select Product & Extras
+        if (mem.step === 2) {
+            if (input === '0') {
+               mem.step = 0; botMemory.set(remoteJid, mem);
+               return handleMessage(tenantId, { ...msg, message: { conversation: 'Oi' } }, sock); // Simula voltar
+            }
+            const idx = parseInt(input) - 1;
+            if (isNaN(idx) || !mem.products[idx]) {
+                await humanizedSendMessage(sock, remoteJid, { text: `Opção inválida.` });
+                return;
+            }
+            const prod = mem.products[idx];
+            mem.productId = prod.id;
+            mem.currentProduct = prod;
+            mem.selectedExtras = [];
+            
+            if (!prod.extras || prod.extras.length === 0) {
+                 // No extras, add direct to cart
+                 mem.cart.push({ product: prod, extras: [], quantity: 1, total: prod.price });
+                 mem.step = 4;
+                 botMemory.set(remoteJid, mem);
+                 await humanizedSendMessage(sock, remoteJid, { text: `✅ *${prod.name}* adicionado ao carrinho!\n\nDeseja adicionar mais algum item ao seu pedido?\n*1.* Sim, pedir mais coisas\n*2.* Não, finalizar e pagar` });
+                 return;
+            } else {
+                 let reply = `🥩 Você escolheu *${prod.name}*!\n\nDeseja algum *ADICIONAL*? Digite os números (Ex: 1, 3) ou 0 para NENHUM:\n\n`;
+                 prod.extras.forEach((ext:any, i:number) => {
+                     reply += `*${i + 1}.* ${ext.name} (+R$ ${ext.price.toFixed(2)})\n`;
+                 });
+                 reply += `\n*0.* Sem adicionais`;
+                 mem.step = 3;
+                 botMemory.set(remoteJid, mem);
+                 await humanizedSendMessage(sock, remoteJid, { text: reply });
+            }
+            return;
+        }
+
+        // Step 3: Handle Extras logic
+        if (mem.step === 3) {
+            const prod = mem.currentProduct;
+            let extrasTotal = 0;
+            let chosenExtras: any[] = [];
+            
+            if (input !== '0') {
+                const choices = input.split(',').map((s:any) => parseInt(s.trim()) - 1);
+                choices.forEach((c:any) => {
+                    const extra = prod.extras[c];
+                    if (extra) {
+                       chosenExtras.push(extra);
+                       extrasTotal += extra.price;
                     }
                 });
-            } else {
-                await prisma.customer.update({
-                    where: { id: customer.id },
-                    data: { whatsapp_jid: remoteJid }
+            }
+
+            mem.cart.push({ product: prod, extras: chosenExtras, quantity: 1, total: prod.price + extrasTotal });
+            mem.step = 4;
+            botMemory.set(remoteJid, mem);
+            
+            let extraText = chosenExtras.length > 0 ? ` (Com ${chosenExtras.map((e:any)=>e.name).join(', ')})` : '';
+            await humanizedSendMessage(sock, remoteJid, { text: `✅ *${prod.name}*${extraText} adicionado!\n\nDeseja adicionar mais coisas?\n*1.* Sim\n*2.* Não, finalizar` });
+            return;
+        }
+
+        // Step 4: Continue or Checkout
+        if (mem.step === 4) {
+            if (input === '1') {
+                mem.step = 0; botMemory.set(remoteJid, mem);
+                return handleMessage(tenantId, { ...msg, message: { conversation: 'Oi' } }, sock); 
+            } else if (input === '2') {
+                let total = 0;
+                let summary = `*RESUMO DO SEU PEDIDO:*\n\n`;
+                mem.cart.forEach((c:any) => {
+                    summary += `1x ${c.product.name} - R$ ${c.total.toFixed(2)}\n`;
+                    if (c.extras && c.extras.length > 0) {
+                       summary += `   _+ ${c.extras.map((e:any)=>e.name).join(', ')}_\n`;
+                    }
+                    total += c.total;
                 });
+                total += tenant.delivery_fee;
+                mem.finalTotal = total;
+                summary += `\nTaxa de Entrega: R$ ${tenant.delivery_fee.toFixed(2)}`;
+                summary += `\n*TOTAL A PAGAR: R$ ${total.toFixed(2)}*\n\nPor favor, *digite seu endereço completo com ponto de referência* para a entrega:`;
+                
+                mem.step = 5;
+                botMemory.set(remoteJid, mem);
+                await humanizedSendMessage(sock, remoteJid, { text: summary });
+                return;
+            } else {
+                await humanizedSendMessage(sock, remoteJid, { text: `Opção inválida. Digite 1 ou 2.` });
+                return;
             }
         }
 
-        const chatMsg = await prisma.chatMessage.create({
-            data: {
-                tenant_id: tenantId,
-                content: text,
-                jid: remoteJid,
-                from_me: false,
-                customer_id: customer?.id,
-                type: msg.message?.imageMessage ? 'image' : 'text'
-            }
-        });
+        // Step 5: Address
+        if (mem.step === 5) {
+            mem.address = input;
+            mem.step = 6;
+            botMemory.set(remoteJid, mem);
+            await humanizedSendMessage(sock, remoteJid, { text: `Endereço anotado! 🛵\n\nQual será a *Forma de Pagamento*?\n*1.* PIX (Finalizar via site ou mandar comprovante aqui)\n*2.* Dinheiro (Troco para quanto? Caso não precise, digite "Dinheiro")\n*3.* Cartão de Crédito/Débito (Levaremos a maquininha)` });
+            return;
+        }
 
-        eventBus.emit(EVENTS.NEW_MESSAGE, chatMsg);
+        // Step 6: Payment and Finalize
+        if (mem.step === 6) {
+            const payTypes = ['PIX', 'CASH', 'CREDIT_CARD'];
+            const pIdx = parseInt(input[0]) - 1; // get the first character if they typed "2 para troco 50"
+            const paymentMethod = payTypes[pIdx >= 0 && pIdx <= 2 ? pIdx : 1]; // fallback to cash
 
-        if (tenant.status === 'BLOCKED') return;
+            // Create Order in DB
+            const order = await prisma.order.create({
+                data: {
+                    tenant_id: tenantId,
+                    customer_id: customer.id,
+                    total: mem.finalTotal,
+                    delivery_fee: tenant.delivery_fee,
+                    delivery_address: mem.address,
+                    payment_method: paymentMethod,
+                    notes: input, // store their payment notes (like troco)
+                    status: 'PENDING',
+                    items: {
+                        create: mem.cart.map((c:any) => ({
+                            product_id: c.product.id,
+                            quantity: 1,
+                            unit_price: c.total,
+                            extras: {
+                                create: c.extras.map((e:any) => ({
+                                    extra_id: e.id, price: e.price
+                                }))
+                            }
+                        }))
+                    }
+                },
+                include: { customer: true, items: { include: { product: true } } }
+            });
 
-        if (customer.bot_paused) return;
+            // Emit to Dashboard
+            eventBus.emit(EVENTS.NEW_ORDER, order);
 
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const catalogUrl = `${baseUrl}/catalogo/${tenant.slug}?ref=${customer.id}`;
-
-        const welcomeText = `🍔 Olá *${customer.name.split(' ')[0]}*! Bem-vindo(a) à *${tenant.name}*!\n\nPara fazer seu pedido de forma rápida e prática, acesse nosso cardápio digital interativo:\n\n👉 ${catalogUrl}\n\nFicaremos felizes em preparar o seu lanche! 😋`;
-
-        await humanizedSendMessage(sock, remoteJid, { text: welcomeText });
+            botMemory.delete(remoteJid);
+            await humanizedSendMessage(sock, remoteJid, { text: `🎉 *PEDIDO REALIZADO COM SUCESSO!*\nNúmero do pedido: #${order.id.slice(-4)}\n\nNossa cozinha já foi notificada na tela deles, e vamos começar a preparar com muito carinho. O robô vai te mandar mensagem automática avisando quando sair para entrega!\n\nMuito obrigado por comprar com a ${tenant.name}!` });
+            return;
+        }
 
     } catch (err) {
-        console.error(`[WA] Critical error handling message from tenant ${tenantId}:`, err);
+        console.error(`[WA] ERROR in handleMessage for ${tenantId}:`, err);
     }
 }

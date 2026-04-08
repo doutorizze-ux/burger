@@ -197,12 +197,21 @@ app.get('/api/products', authMiddleware, async (req: any, res) => {
 
 app.post('/api/products', authMiddleware, async (req: any, res) => {
     try {
-        const { name, description, price, category_id, image_url } = req.body;
+        const { name, description, price, category_id, image_url, extras } = req.body;
         const product = await prisma.product.create({
-            data: { name, description, price: parseFloat(price), category_id, image_url, tenant_id: req.user.tenant_id }
+            data: { 
+                name, description, price: parseFloat(price), category_id, image_url, tenant_id: req.user.tenant_id,
+                extras: extras ? { create: extras.map((e:any) => ({ name: e.name, price: parseFloat(e.price) })) } : undefined
+            },
+            include: { extras: true }
         });
         res.json(product);
     } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/products', authMiddleware, async (req: any, res) => {
+    const prods = await prisma.product.findMany({ where: { tenant_id: req.user.tenant_id }, include: { extras: true } });
+    res.json(prods);
 });
 
 app.put('/api/products/:id', authMiddleware, async (req: any, res) => {
