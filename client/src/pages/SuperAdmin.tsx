@@ -4,10 +4,22 @@ export default function SuperAdmin() {
   const [stats, setStats] = useState<any>(null);
   
   useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = () => {
     fetch('/api/superadmin/stats', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
       .then(r => r.json())
       .then(setStats);
-  }, []);
+  };
+
+  const toggleTenantStatus = async (id: string) => {
+    await fetch(`/api/superadmin/tenants/${id}/toggle`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    fetchStats();
+  };
 
   if (!stats) return <div className="p-10 font-bold text-center">🔐 Autenticando Mestre...</div>;
 
@@ -47,20 +59,28 @@ export default function SuperAdmin() {
             <thead>
               <tr className="text-slate-500 uppercase text-xs font-bold">
                 <th className="pb-4">Loja (Tenant)</th>
-                <th className="pb-4">Status Pagamento</th>
+                <th className="pb-4">Status da Loja</th>
                 <th className="pb-4">Criado Em</th>
                 <th className="pb-4">WhatsApp</th>
-                <th className="pb-4">Acesso Clandestino</th>
+                <th className="pb-4">Ações do Mestre</th>
               </tr>
             </thead>
             <tbody>
               {stats.tenants?.map((t:any) => (
                 <tr key={t.id} className="border-b border-slate-700/50">
                   <td className="py-4 font-bold text-white">{t.name}</td>
-                  <td className="py-4"><span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-md text-xs font-bold">{t.payment_status}</span></td>
+                  <td className="py-4">
+                     <span className={`px-3 py-1 rounded-md text-xs font-bold ${t.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {t.status === 'ACTIVE' ? '🟢 ATIVA' : '🔴 BLOQUEADA'}
+                     </span>
+                  </td>
                   <td className="py-4 font-medium text-slate-400">{new Date(t.created_at).toLocaleDateString()}</td>
                   <td className="py-4 font-medium text-slate-400">{t.whatsapp_status}</td>
-                  <td className="py-4"><button className="text-indigo-400 font-bold hover:underlinetext-sm">Espionar Dados</button></td>
+                  <td className="py-4 flex gap-3">
+                     <button onClick={() => toggleTenantStatus(t.id)} className={`font-bold text-sm hover:underline ${t.status === 'ACTIVE' ? 'text-red-400' : 'text-green-400'}`}>
+                         {t.status === 'ACTIVE' ? 'Desativar Conta' : 'Ativar Conta'}
+                     </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

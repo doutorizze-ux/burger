@@ -159,6 +159,19 @@ app.get('/api/superadmin/stats', authMiddleware, async (req: any, res) => {
     }
 });
 
+app.put('/api/superadmin/tenants/:id/toggle', authMiddleware, async (req: any, res) => {
+    if (req.user.email !== 'admin@admin.com') return res.status(403).json({ error: 'Master Access Denied' });
+    try {
+        const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+        if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+        const newStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+        const updated = await prisma.tenant.update({ where: { id: tenant.id }, data: { status: newStatus } });
+        res.json(updated);
+    } catch(e) {
+        res.status(500).json({ error: 'Error toggling status' });
+    }
+});
+
 app.post('/api/whatsapp/connect', authMiddleware, async (req: any, res) => {
     const tenantId = req.user.tenant_id;
     initWhatsApp(
