@@ -47,6 +47,10 @@ export default function DriverPanel() {
     newSocket.on('delivery_accepted', ({ requestId }) => {
        setRequests(prev => prev.filter(r => r.id !== requestId));
     });
+    
+    newSocket.on('delivery_expired', ({ requestId }) => {
+       setRequests(prev => prev.filter(r => r.id !== requestId));
+    });
 
     if (navigator.geolocation) {
          navigator.geolocation.watchPosition((pos) => {
@@ -78,7 +82,22 @@ export default function DriverPanel() {
     });
     if (res.ok) {
         alert('CORRIDA ACEITA! Vai lá filhão!');
+        setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'ACCEPTED' } : r));
+    } else {
+        alert('Alguém foi mais rápido ou corrida expirou!');
         setRequests(prev => prev.filter(r => r.id !== reqId));
+    }
+  };
+
+  const finishDelivery = async (reqId: string) => {
+    const res = await fetch(`/api/driver/finish/${reqId}`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('driver_token')}` }
+    });
+    if (res.ok) {
+        alert('ENTREGA FINALIZADA! Boa! 🚀');
+        setRequests(prev => prev.filter(r => r.id !== reqId));
+    } else {
+        alert('Erro ao finalizar.');
     }
   };
 
@@ -113,21 +132,32 @@ export default function DriverPanel() {
            
            <div className="flex flex-col gap-4">
                {requests.map(req => (
-                   <div key={req.id} className="bg-zinc-800 p-5 rounded-xl border border-zinc-700 flex flex-col gap-3">
+                   <div key={req.id} className={`bg-zinc-800 p-5 rounded-xl border ${req.status === 'ACCEPTED' ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-zinc-700'} flex flex-col gap-3`}>
                        <div className="flex justify-between items-start">
                            <div>
                               <h3 className="font-bold text-lg">Pedido #{req.order_id.slice(-4)}</h3>
                               <p className="text-orange-400 font-bold">R$ {req.order?.delivery_fee?.toFixed(2) || '0.00'}</p>
                            </div>
-                           <span className="bg-zinc-700 px-3 py-1 rounded-md text-xs font-bold animate-pulse">NOVA</span>
+                           {req.status === 'ACCEPTED' ? (
+                               <span className="bg-blue-600 px-3 py-1 rounded-md text-xs font-bold text-white">EM ANDAMENTO</span>
+                           ) : (
+                               <span className="bg-orange-600 px-3 py-1 rounded-md text-xs font-bold animate-pulse text-white">NOVA</span>
+                           )}
                        </div>
                        <div className="bg-zinc-900 p-3 rounded-md">
                           <p className="text-sm text-zinc-400">Destino:</p>
                           <p className="font-medium text-zinc-200">{req.order?.delivery_address || 'Endereço não informado'}</p>
                        </div>
-                       <button onClick={() => acceptDelivery(req.id)} className="w-full mt-2 bg-green-600 hover:bg-green-500 text-white p-4 rounded-lg font-black text-lg">
-                           ACEITAR CORRIDA 🛵
-                       </button>
+                       
+                       {req.status === 'ACCEPTED' ? (
+                           <button onClick={() => finishDelivery(req.id)} className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-lg font-black text-lg">
+                               ENTREGUE ✅
+                           </button>
+                       ) : (
+                           <button onClick={() => acceptDelivery(req.id)} className="w-full mt-2 bg-green-600 hover:bg-green-500 text-white p-4 rounded-lg font-black text-lg">
+                               ACEITAR CORRIDA 🛵
+                           </button>
+                       )}
                    </div>
                ))}
                {requests.length === 0 && isOnline && (

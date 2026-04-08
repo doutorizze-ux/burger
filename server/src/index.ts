@@ -113,6 +113,10 @@ eventBus.on(EVENTS.NEW_DELIVERY_REQUEST, ({ tenantId, request }) => {
     io.to(`driver_${tenantId}`).emit('new_delivery_request', request);
 });
 
+eventBus.on(EVENTS.DELIVERY_EXPIRED, ({ tenantId, requestId }) => {
+    io.to(`driver_${tenantId}`).emit('delivery_expired', { requestId });
+});
+
 // START: ROUTES
 app.post('/api/register', async (req, res) => {
     const { storeName, email, password } = req.body;
@@ -428,7 +432,13 @@ app.get('/api/driver/requests', authMiddleware, async (req: any, res) => {
     if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
     try {
         const requests = await prisma.deliveryRequest.findMany({
-             where: { tenant_id: req.user.tenant_id, status: 'PENDING' },
+             where: { 
+                 tenant_id: req.user.tenant_id,
+                 OR: [
+                     { status: 'PENDING' },
+                     { status: 'ACCEPTED', driver_id: req.user.driver_id }
+                 ]
+             },
              include: { order: { include: { customer: true } } }
         });
         res.json(requests);
@@ -454,6 +464,25 @@ app.post('/api/driver/accept/:requestId', authMiddleware, async (req: any, res) 
         const trackingUrl = `http://localhost:5173/tracking/${request.order_id}`; // Adjust domain in prod
         if (request.order.customer.whatsapp_jid) {
             await sendMessageToJid(req.user.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido saiu para entrega com nosso motoboy! 🛵💨\nAcompanhe ao vivo pelo GPS:\n${trackingUrl}`);
+        }
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: 'Erro' }); }
+});
+
+app.post('/api/driver/finish/:requestId', authMiddleware, async (req: any, res) => {
+    if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
+    try {
+        const request = await prisma.deliveryRequest.findUnique({ where: { id: req.params.requestId }, include: { order: { include: { customer: true } } } });
+        if (!request || request.status !== 'ACCEPTED') return res.status(400).json({ error: 'Não disponível' });
+        
+        await prisma.$transaction([
+            prisma.deliveryRequest.update({ where: { id: request.id }, data: { status: 'COMPLETED' } }),
+            prisma.order.update({ where: { id: request.order_id }, data: { status: 'DELIVERED' } })
+        ]);
+        
+        io.to(req.user.tenant_id).emit('order_delivered', { orderId: request.order_id });
+        if (request.order.customer.whatsapp_jid) {
+            await sendMessageToJid(req.user.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido foi entregue com sucesso! Bom apetite! 🍔😋`);
         }
         res.json({ success: true });
     } catch(e) { res.status(500).json({ error: 'Erro' }); }

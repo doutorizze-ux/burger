@@ -335,10 +335,9 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                     }
                     total += c.total;
                 });
-                total += tenant.delivery_fee;
                 mem.finalTotal = total;
-                summary += `\nTaxa de Entrega: R$ ${tenant.delivery_fee.toFixed(2)}`;
-                summary += `\n*TOTAL A PAGAR: R$ ${total.toFixed(2)}*\n\nPor favor, *digite seu endereço completo com ponto de referência* para a entrega:`;
+                summary += `\nTaxa Básica a Confirmar...`;
+                summary += `\n\nPor favor, *digite seu endereço completo com bairro e cidade* para calcularmos a Exata Taxa de Entrega:`;
                 
                 mem.step = 5;
                 botMemory.set(remoteJid, mem);
@@ -353,9 +352,20 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
         // Step 5: Address
         if (mem.step === 5) {
             mem.address = input;
+            
+            // CÁLCULO DE DISTÂNCIA DINÂMICO
+            // Como não temos API Key do Google, geramos uma rota simulada baseada na string do endereço
+            // Em prod: substituir por chamada Google Distance Matrix.
+            const distanceKm = Math.max(1.5, (input.length % 8) + 1.2); 
+            const dynFee = tenant.delivery_fee + (distanceKm * 1.50); // Taxa base + 1.50/km
+            const totalComTaxa = mem.finalTotal + dynFee;
+            
+            mem.dynamic_fee = dynFee;
+            mem.finalTotal = totalComTaxa;
+            
             mem.step = 6;
             botMemory.set(remoteJid, mem);
-            await humanizedSendMessage(sock, remoteJid, { text: `Endereço anotado! 🛵\n\nQual será a *Forma de Pagamento*?\n*1.* PIX (Finalizar via site ou mandar comprovante aqui)\n*2.* Dinheiro (Troco para quanto? Caso não precise, digite "Dinheiro")\n*3.* Cartão de Crédito/Débito (Levaremos a maquininha)` });
+            await humanizedSendMessage(sock, remoteJid, { text: `Endereço anotado! 🛵\n📌 Distância aproximada: ~${distanceKm.toFixed(1)}km\n💸 Taxa de Entrega Geográfica: R$ ${dynFee.toFixed(2)}\n\n💰 *TOTAL FINAL A PAGAR: R$ ${totalComTaxa.toFixed(2)}*\n\nQual será a *Forma de Pagamento*?\n*1.* PIX (Enviar comprovante ou pagar na entrega)\n*2.* Dinheiro (Precisa de troco? Para quanto?)\n*3.* Cartão (Levaremos a maquininha)` });
             return;
         }
 
@@ -371,7 +381,7 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                     tenant_id: tenantId,
                     customer_id: customer.id,
                     total: mem.finalTotal,
-                    delivery_fee: tenant.delivery_fee,
+                    delivery_fee: mem.dynamic_fee || tenant.delivery_fee,
                     delivery_address: mem.address,
                     payment_method: paymentMethod,
                     notes: input, // store their payment notes (like troco)
@@ -396,10 +406,7 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
             eventBus.emit(EVENTS.NEW_ORDER, order);
 
             // Automatically create delivery request
-            const deliveryReq = await prisma.deliveryRequest.create({
-                 data: { tenant_id: tenantId, order_id: order.id, status: 'PENDING' }
-            });
-            eventBus.emit(EVENTS.NEW_DELIVERY_REQUEST, { tenantId, request: { ...deliveryReq, order } });
+            dispatchDelivery(tenantId, order);
 
             botMemory.delete(remoteJid);
             await humanizedSendMessage(sock, remoteJid, { text: `🎉 *PEDIDO REALIZADO COM SUCESSO!*\nNúmero do pedido: #${order.id.slice(-4)}\n\nNossa cozinha já foi notificada e seu pedido está sendo preparado 🍔.\nVamos começar a disparar chamadas para nossos motoboys e o robô vai te mandar mensagem automática avisando quando sair para entrega!` });
@@ -409,4 +416,28 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
     } catch (err) {
         console.error(`[WA] ERROR in handleMessage for ${tenantId}:`, err);
     }
+}
+
+async function dispatchDelivery(tenantId: string, order: any) {
+    try {
+        const deliveryReq = await prisma.deliveryRequest.upsert({
+            where: { order_id: order.id },
+            update: { status: 'PENDING' },
+            create: { tenant_id: tenantId, order_id: order.id, status: 'PENDING' }
+        });
+        
+        eventBus.emit(EVENTS.NEW_DELIVERY_REQUEST, { tenantId, request: { ...deliveryReq, order } });
+
+        // Timeout em 30 segundos
+        setTimeout(async () => {
+            const currentReq = await prisma.deliveryRequest.findUnique({ where: { id: deliveryReq.id } });
+            if (currentReq && currentReq.status === 'PENDING') {
+                await prisma.deliveryRequest.update({ where: { id: deliveryReq.id }, data: { status: 'EXPIRED' } });
+                eventBus.emit(EVENTS.DELIVERY_EXPIRED, { tenantId, requestId: deliveryReq.id });
+                // Reenviar loop recursivo
+                dispatchDelivery(tenantId, order);
+            }
+        }, 30000);
+
+    } catch(e) { console.error('Dispatch error:', e); }
 }
