@@ -149,6 +149,15 @@ app.get('/api/me', authMiddleware, async (req: any, res) => {
         res.status(500).json({ error: 'Erro ao buscar dados' });
     }
 });
+app.get('/api/superadmin/stats', authMiddleware, async (req: any, res) => {
+    if (req.user.email === 'admin@admin.com') {
+         const tenants = await prisma.tenant.findMany();
+         const totalProducts = await prisma.product.count();
+         res.json({ tenants, totalProducts });
+    } else {
+         res.status(403).json({ error: 'Master Access Denied' });
+    }
+});
 
 app.post('/api/whatsapp/connect', authMiddleware, async (req: any, res) => {
     const tenantId = req.user.tenant_id;

@@ -7,6 +7,9 @@ import Catalog from './pages/Catalog';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 
+import LandingPage from './pages/LandingPage';
+import SuperAdmin from './pages/SuperAdmin';
+
 export const AuthContext = React.createContext<any>(null);
 
 function App() {
@@ -34,10 +37,11 @@ function App() {
     <AuthContext.Provider value={{ user, setUser }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to={user ? "/admin" : "/login"} />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" />} />
           <Route path="/catalogo/:slug" element={<Catalog />} />
+          <Route path="/superadmin" element={user ? <SuperAdmin /> : <Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
       <ToastContainer position="bottom-right" />
