@@ -359,8 +359,21 @@ app.get('/api/leads', authMiddleware, async (req: any, res) => {
 });
 
 
-app.listen(3001, () => {
-    console.log('Server is running on port 3001');
+// static build serve
+const publicDir = path.join(__dirname, '../public');
+if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    app.get('*', (req, res) => {
+        if (!req.url.startsWith('/api') && !req.url.startsWith('/uploads')) {
+            res.sendFile(path.join(publicDir, 'index.html'));
+        } else {
+            res.status(404).json({ error: 'Endpoint não encontrado' });
+        }
+    });
+}
+
+app.listen(process.env.PORT || 3000, () => {
+    console.log(`Server is running on port ${process.env.PORT || 3000}`);
     initScheduler();
     setTimeout(reconnectSessions, 2000);
 });
