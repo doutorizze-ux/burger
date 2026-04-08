@@ -69,9 +69,33 @@ export default function AdminPanel() {
     fetchData();
   };
 
-  const connectWA = () => {
+  const [waLoading, setWaLoading] = useState(false);
+
+  const connectWA = async () => {
+    setWaLoading(true);
     setWaQr(''); // clear old QR
-    fetch('/api/whatsapp/connect', { method: 'POST', headers });
+    try {
+      await fetch('/api/whatsapp/connect', { method: 'POST', headers });
+      
+      // Fallback: poll for QR in case WebSockets are blocked by proxy
+      const pollQR = setInterval(async () => {
+        try {
+          const res = await fetch('/api/whatsapp/qr', { headers });
+          const data = await res.json();
+          if (data.qr) {
+            setWaQr(data.qr);
+            setWaLoading(false);
+            clearInterval(pollQR);
+          }
+        } catch(e) {}
+      }, 3000);
+
+      // Stop polling after 60s
+      setTimeout(() => clearInterval(pollQR), 60000);
+    } catch(err) {
+      console.error(err);
+      setWaLoading(false);
+    }
   };
 
   const logout = () => {
@@ -453,8 +477,8 @@ export default function AdminPanel() {
                       </div>
                       
                       {waStatus !== 'CONNECTED' && !waQr && (
-                        <button onClick={connectWA} className="w-full bg-slate-900 text-white font-black text-lg py-5 rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all hover:scale-[1.02]">
-                          Gerar QR Code Agora
+                        <button disabled={waLoading} onClick={connectWA} className="w-full bg-slate-900 text-white font-black text-lg py-5 rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:scale-100 flex justify-center items-center gap-2">
+                          {waLoading ? <><div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> Conectando Robô...</> : 'Gerar QR Code Agora'}
                         </button>
                       )}
                       

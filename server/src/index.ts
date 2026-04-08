@@ -160,6 +160,11 @@ app.post('/api/whatsapp/connect', authMiddleware, async (req: any, res) => {
     res.json({ status: 'INITIALIZING' });
 });
 
+app.get('/api/whatsapp/qr', authMiddleware, async (req: any, res) => {
+    const { getLatestQR } = await import('./whatsappManager.js');
+    res.json({ qr: getLatestQR(req.user.tenant_id) });
+});
+
 app.post('/api/whatsapp/logout', authMiddleware, async (req: any, res) => {
     await logoutSession(req.user.tenant_id);
     res.json({ success: true });
