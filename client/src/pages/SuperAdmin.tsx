@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Users, TrendingUp, DollarSign, Activity } from 'lucide-react';
 
 export default function SuperAdmin() {
   const [stats, setStats] = useState<any>(null);
