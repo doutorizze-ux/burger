@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ShoppingBag, ChevronLeft, Plus, Minus, CreditCard, Banknote, MapPin, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, CreditCard, Banknote, MapPin, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Catalog() {

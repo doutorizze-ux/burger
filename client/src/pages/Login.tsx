@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function Login() {
   const [email, setEmail] = useState('admin@admin.com');
   const [password, setPassword] = useState('123456');
-  const navigate = useNavigate();
 
   const handleLogin = async (e: any) => {
     e.preventDefault();

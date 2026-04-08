@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import io from 'socket.io-client';
-import { QrCode, UtensilsCrossed, LayoutDashboard, Settings, LogOut, CheckCircle, Clock, Truck } from 'lucide-react';
+import { QrCode, UtensilsCrossed, LayoutDashboard, Settings, LogOut, Clock, Truck } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 let socket: any;
@@ -101,7 +101,7 @@ export default function AdminPanel() {
 
         {activeTab === 'orders' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {['PENDING', 'PREPARING', 'DELIVERED'].map((status, i) => (
+            {['PENDING', 'PREPARING', 'DELIVERED'].map((status) => (
               <div key={status} className="bg-gray-100/50 rounded-2xl p-4 border border-gray-200">
                 <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-4 uppercase text-sm">
                   {status === 'PENDING' ? <Clock className="text-orange-500" size={18}/> : status === 'PREPARING' ? <UtensilsCrossed className="text-blue-500" size={18}/> : <Truck className="text-green-500" size={18}/>}
