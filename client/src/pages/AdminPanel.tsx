@@ -17,6 +17,11 @@ export default function AdminPanel() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [waStatus, setWaStatus] = useState(user?.whatsapp_status);
   const [waQr, setWaQr] = useState('');
+  
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [activeChatJid, setActiveChatJid] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   // Form states
   const [newCat, setNewCat] = useState('');
@@ -34,6 +39,9 @@ export default function AdminPanel() {
     socket.on('new_order', (o:any) => setOrders(prev => [o, ...prev]));
     socket.on('qr_code', (qr:any) => setWaQr(qr));
     socket.on('whatsapp_status', (st:any) => { setWaStatus(st); if(st==='CONNECTED') setWaQr(''); });
+    socket.on('chat:new_message', (msg:any) => {
+        setChatMessages(prev => [...prev, msg].sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+    });
 
     fetchData();
   }, [user]);
@@ -42,11 +50,25 @@ export default function AdminPanel() {
     fetch('/api/orders', {headers}).then(r=>r.json()).then(setOrders);
     fetch('/api/categories', {headers}).then(r=>r.json()).then(setCategories);
     fetch('/api/products', {headers}).then(r=>r.json()).then(setProducts);
-    // Mock clients list for MVP UI presence until api/chats is robust
-    setCustomers([
-      { id: '1', name: 'João Silva', phone: '27999887766', orders: 12, total_spent: 450.00 },
-      { id: '2', name: 'Maria Souza', phone: '27998885544', orders: 5, total_spent: 120.50 }
-    ]);
+    fetch('/api/chats', {headers}).then(r=>r.json()).then(setCustomers);
+  };
+
+  const loadChat = async (customer: any) => {
+    setActiveChatJid(customer.whatsapp_jid || '');
+    setChatLoading(true);
+    const msgs = await fetch(`/api/chats/${customer.id}/messages`, {headers}).then(r=>r.json());
+    if (Array.isArray(msgs)) setChatMessages(msgs);
+    setChatLoading(false);
+  };
+
+  const sendMessage = async (e:any) => {
+     e.preventDefault();
+     if(!chatInput.trim() || !activeChatJid) return;
+     const text = chatInput;
+     setChatInput('');
+     // Optimistic update
+     setChatMessages(prev => [...prev, { content: text, from_me: true, created_at: new Date().toISOString() }]);
+     await fetch('/api/chat/send', { method: 'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify({ jid: activeChatJid, text }) });
   };
 
   const updateOrderStatus = async (id: string, status: string) => {
@@ -473,14 +495,55 @@ export default function AdminPanel() {
                                  <p className="text-xs text-slate-500">{c.phone}</p>
                                </div>
                              </td>
-                             <td className="py-5"><span className="bg-slate-100 px-3 py-1 rounded-lg">{c.orders} pedidos</span></td>
-                             <td className="py-5 text-green-600 font-bold">R$ {c.total_spent.toFixed(2)}</td>
-                             <td className="py-5"><button className="text-orange-500 font-bold hover:underline">Ver Histórico</button></td>
+                             <td className="py-5 font-bold text-slate-500">{c.orders?.length || 0} pdds</td>
+                             <td className="py-5 text-green-600 font-bold">R$ {(c.total_spent || 0).toFixed(2)}</td>
+                             <td className="py-5"><button onClick={() => loadChat(c)} className="text-orange-500 font-bold hover:underline">Conversar Live</button></td>
                            </tr>
                          ))}
                        </tbody>
                      </table>
                    </div>
+                   
+                   {/* Chat Modal / Area Overlay */}
+                   {activeChatJid && (
+                     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex justify-end">
+                       <div className="w-[500px] h-full bg-white shadow-2xl flex flex-col">
+                         <div className="p-6 bg-slate-800 text-white flex justify-between items-center shadow-md z-10">
+                           <div className="flex items-center gap-3">
+                             <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center font-bold text-xl"><Users/></div>
+                             <div>
+                               <h4 className="font-extrabold text-lg leading-tight">Chat Ao Vivo</h4>
+                               <p className="text-green-400 text-xs font-bold truncate w-48">{activeChatJid}</p>
+                             </div>
+                           </div>
+                           <button onClick={()=>setActiveChatJid('')} className="bg-white/10 hover:bg-white/20 p-2 rounded-xl transition text-white font-bold">&times;</button>
+                         </div>
+                         
+                         <div className="flex-1 bg-slate-50 overflow-y-auto p-4 space-y-4 flex flex-col">
+                           {chatLoading ? (
+                             <div className="m-auto text-slate-400 font-bold animate-pulse">Carregando mensagens...</div>
+                           ) : (
+                             chatMessages.map((m, i) => (
+                               <div key={i} className={`max-w-[80%] p-3 rounded-2xl text-sm font-medium ${m.from_me ? 'bg-orange-500 text-white self-end rounded-br-none shadow-md shadow-orange-500/20' : 'bg-white border border-slate-200 text-slate-700 self-start rounded-bl-none shadow-sm'}`}>
+                                 {m.content}
+                                 <span className="block text-[10px] mt-1 opacity-70 w-full text-right">{new Date(m.created_at).toLocaleTimeString().slice(0,5)}</span>
+                               </div>
+                             ))
+                           )}
+                         </div>
+
+                         <div className="p-4 bg-white border-t border-slate-100">
+                           <form onSubmit={sendMessage} className="flex gap-2">
+                             <input value={chatInput} onChange={e=>setChatInput(e.target.value)} type="text" placeholder="Digite uma mensagem..." className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:border-orange-500 font-medium transition" />
+                             <button type="submit" className="w-14 h-14 bg-orange-500 rounded-2xl text-white font-bold flex shrink-0 items-center justify-center hover:bg-orange-600 transition shadow-lg shadow-orange-500/30">
+                               Enviar
+                             </button>
+                           </form>
+                         </div>
+                       </div>
+                     </div>
+                   )}                   
+
                 </div>
               )}
 
