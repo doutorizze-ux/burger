@@ -396,7 +396,7 @@ const seedDatabase = async () => {
     }
 };
 
-app.listen(process.env.PORT || 3000, async () => {
+server.listen(process.env.PORT || 3000, async () => {
     console.log(`Server is running on port ${process.env.PORT || 3000}`);
     await seedDatabase();
     initScheduler();

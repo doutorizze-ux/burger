@@ -1,18 +1,20 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import io from 'socket.io-client';
-import { QrCode, UtensilsCrossed, LayoutDashboard, Settings, LogOut, Clock, Truck } from 'lucide-react';
+import { QrCode, UtensilsCrossed, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, Activity, TrendingUp, DollarSign, Menu, Bell, Search, PlusCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import { motion, AnimatePresence } from 'framer-motion';
 
 let socket: any;
 
 export default function AdminPanel() {
   const { user } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   const [orders, setOrders] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [waStatus, setWaStatus] = useState(user?.whatsapp_status);
   const [waQr, setWaQr] = useState('');
 
@@ -38,6 +40,11 @@ export default function AdminPanel() {
     fetch('/api/orders', {headers}).then(r=>r.json()).then(setOrders);
     fetch('/api/categories', {headers}).then(r=>r.json()).then(setCategories);
     fetch('/api/products', {headers}).then(r=>r.json()).then(setProducts);
+    // Mock clients list for MVP UI presence until api/chats is robust
+    setCustomers([
+      { id: '1', name: 'João Silva', phone: '27999887766', orders: 12, total_spent: 450.00 },
+      { id: '2', name: 'Maria Souza', phone: '27998885544', orders: 5, total_spent: 120.50 }
+    ]);
   };
 
   const updateOrderStatus = async (id: string, status: string) => {
@@ -63,6 +70,7 @@ export default function AdminPanel() {
   };
 
   const connectWA = () => {
+    setWaQr(''); // clear old QR
     fetch('/api/whatsapp/connect', { method: 'POST', headers });
   };
 
@@ -71,153 +79,408 @@ export default function AdminPanel() {
     window.location.href = '/login';
   };
 
+  // KPIs
+  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
+  const todayRevenue = todayOrders.reduce((acc, o) => acc + o.total, 0);
+  const pendingOrdersCount = orders.filter(o => o.status === 'PENDING').length;
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      <div className="w-full md:w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col">
-        <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white font-bold text-xl">🍔</div>
-          <h1 className="font-bold text-xl text-gray-800">PitDog Pro</h1>
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-800">
+      
+      {/* Sidebar Luxuosa */}
+      <div className="w-full md:w-72 bg-slate-900 border-r border-slate-800 shadow-2xl flex flex-col z-20 transition-all text-slate-300">
+        <div className="p-6 border-b border-slate-800 flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-orange-500/30">🍔</div>
+          <div>
+            <h1 className="font-extrabold text-xl text-white tracking-tight">PitDog Pro</h1>
+            <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Dashboard Premium</span>
+          </div>
         </div>
-        <nav className="p-4 flex-1 space-y-2">
-          <button onClick={()=>setActiveTab('orders')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${activeTab==='orders'?'bg-orange-50 text-orange-600': 'text-gray-600 hover:bg-gray-50'}`}>
-            <LayoutDashboard size={20}/> Pedidos
+        <nav className="p-4 flex-1 space-y-1 overflow-y-auto">
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-4">Menu Principal</p>
+          
+          <button onClick={()=>setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='dashboard'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <LayoutDashboard size={20}/> Dashboard
           </button>
-          <button onClick={()=>setActiveTab('menu')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${activeTab==='menu'?'bg-orange-50 text-orange-600': 'text-gray-600 hover:bg-gray-50'}`}>
-            <UtensilsCrossed size={20}/> Cardápio
+          
+          <button onClick={()=>setActiveTab('orders')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all relative ${activeTab==='orders'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <Clock size={20}/> Central de Pedidos
+            {pendingOrdersCount > 0 && <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">{pendingOrdersCount}</span>}
           </button>
-          <button onClick={()=>setActiveTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${activeTab==='settings'?'bg-orange-50 text-orange-600': 'text-gray-600 hover:bg-gray-50'}`}>
-            <Settings size={20}/> Configurações
+          
+          <button onClick={()=>setActiveTab('menu')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='menu'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <UtensilsCrossed size={20}/> Lanches & Cardápio
+          </button>
+
+          <button onClick={()=>setActiveTab('crm')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='crm'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <Users size={20}/> Clientes (CRM)
+          </button>
+
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-8">Sistema</p>
+          
+          <button onClick={()=>setActiveTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='settings'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <Settings size={20}/> Integrações (WhatsApp)
           </button>
         </nav>
-        <div className="p-4 border-t border-gray-100">
-          <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 font-medium hover:bg-red-50 rounded-xl transition">
-            <LogOut size={20}/> Sair
+        
+        <div className="p-6 border-t border-slate-800">
+          <div className="flex items-center gap-3 mb-6 bg-slate-800 p-3 rounded-2xl">
+            <div className={`w-3 h-3 rounded-full ${waStatus==='CONNECTED'?'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse':'bg-red-500'}`}></div>
+            <span className="text-sm font-semibold text-white">{waStatus==='CONNECTED'?'Bot Online':'Bot Offline'}</span>
+          </div>
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-red-400 font-bold hover:bg-slate-800 rounded-xl transition-colors">
+            <LogOut size={18}/> Sair do Sistema
           </button>
         </div>
       </div>
 
-      <div className="flex-1 p-8 overflow-y-auto">
-        <h2 className="text-3xl font-bold text-gray-800 mb-8 capitalize">{activeTab === 'orders' ? 'Pedidos em Tempo Real' : activeTab === 'menu' ? 'Gerenciar Cardápio' : 'Configurações do Sistema'}</h2>
+      {/* Conteúdo Principal */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50">
+        
+        {/* Header Superior Topo */}
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm shrink-0">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-black text-slate-800 capitalize tracking-tight flex items-center gap-3">
+              {activeTab === 'dashboard' && <><Activity className="text-orange-500"/> Visão Geral</>}
+              {activeTab === 'orders' && <><Clock className="text-orange-500"/> Controle de Cozinha</>}
+              {activeTab === 'menu' && <><UtensilsCrossed className="text-orange-500"/> Gestão de Cardápio</>}
+              {activeTab === 'crm' && <><Users className="text-orange-500"/> Meus Clientes</>}
+              {activeTab === 'settings' && <><Settings className="text-orange-500"/> Aparelho e Configurações</>}
+            </h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-100 p-2.5 rounded-full cursor-pointer hover:bg-slate-200 transition relative">
+              <Bell size={20} className="text-slate-600"/>
+              {pendingOrdersCount > 0 && <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>}
+            </div>
+            <div className="h-10 w-10 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full border-2 border-white shadow-md"></div>
+          </div>
+        </header>
 
-        {activeTab === 'orders' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {['PENDING', 'PREPARING', 'DELIVERED'].map((status) => (
-              <div key={status} className="bg-gray-100/50 rounded-2xl p-4 border border-gray-200">
-                <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-4 uppercase text-sm">
-                  {status === 'PENDING' ? <Clock className="text-orange-500" size={18}/> : status === 'PREPARING' ? <UtensilsCrossed className="text-blue-500" size={18}/> : <Truck className="text-green-500" size={18}/>}
-                  {status === 'PENDING' ? 'Aguardando' : status === 'PREPARING' ? 'Preparando' : 'Entregando'}
-                </h3>
-                <div className="space-y-4">
-                  {orders.filter(o=>o.status===status).map(o => (
-                    <div key={o.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="font-bold text-gray-800">#{o.id.slice(-4)}</span>
-                        <span className="text-xs font-semibold bg-green-50 text-green-600 px-2 py-1 rounded-md">R$ {o.total.toFixed(2)}</span>
+        {/* Área Scrollável */}
+        <main className="flex-1 overflow-y-auto p-8 hide-scrollbar">
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-20}} transition={{duration:0.2}}>
+              
+              {/* === DASHBOARD === */}
+              {activeTab === 'dashboard' && (
+                <div className="space-y-8">
+                  {/* Cards KPIs */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+                      <div className="absolute -right-6 -top-6 bg-green-50 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                      <div className="relative z-10">
+                        <p className="text-slate-500 font-semibold mb-1">Faturamento Hoje</p>
+                        <h3 className="text-3xl font-black text-slate-800">R$ {todayRevenue.toFixed(2)}</h3>
                       </div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">{o.customer?.name}</p>
-                      <p className="text-sm text-gray-500 mb-3">{o.delivery_address}</p>
-                      <div className="space-y-1 mb-4">
-                        {o.items.map((it:any) => (
-                          <div key={it.id} className="text-sm text-gray-600">• {it.quantity}x {it.product?.name}</div>
-                        ))}
+                      <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center text-green-600 relative z-10"><DollarSign size={28}/></div>
+                    </div>
+                    
+                    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+                      <div className="absolute -right-6 -top-6 bg-orange-50 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                      <div className="relative z-10">
+                        <p className="text-slate-500 font-semibold mb-1">Pedidos Hoje</p>
+                        <h3 className="text-3xl font-black text-slate-800">{todayOrders.length} lanches</h3>
                       </div>
-                      <div className="flex gap-2">
-                        {status === 'PENDING' && <button onClick={()=>updateOrderStatus(o.id, 'PREPARING')} className="flex-1 bg-blue-500 text-white text-sm font-bold py-2 rounded-lg hover:bg-blue-600 transition">Aceitar</button>}
-                        {status === 'PREPARING' && <button onClick={()=>updateOrderStatus(o.id, 'DELIVERED')} className="flex-1 bg-green-500 text-white text-sm font-bold py-2 rounded-lg hover:bg-green-600 transition">Despachar</button>}
+                      <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 relative z-10"><TrendingUp size={28}/></div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-3xl shadow-lg border border-slate-700 flex items-center justify-between text-white relative overflow-hidden">
+                      <div className="absolute right-0 bottom-0 opacity-10"><UtensilsCrossed size={120}/></div>
+                      <div className="relative z-10">
+                        <p className="text-slate-400 font-medium mb-1">Cardápio Online</p>
+                        <h3 className="text-xl font-bold">{products.length} Produtos Ativos</h3>
+                        <a href={`/catalogo/${user?.slug}`} target="_blank" className="inline-flex mt-3 items-center text-orange-400 text-sm font-bold hover:text-orange-300">Ver meu portal <ChevronRight size={16}/></a>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  </div>
 
-        {activeTab === 'menu' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="font-bold text-lg mb-4">Adicionar Categoria</h3>
-              <form onSubmit={addCategory} className="flex gap-3">
-                <input required placeholder="Ex: Sanduíches" value={newCat} onChange={e=>setNewCat(e.target.value)} className="flex-1 p-3 rounded-xl border border-gray-200 outline-none focus:border-orange-500" />
-                <button className="bg-orange-500 text-white font-bold px-6 py-3 rounded-xl hover:bg-orange-600 transition">Criar</button>
-              </form>
-              <div className="mt-6 space-y-2">
-                {categories.map(c => <div key={c.id} className="p-3 bg-gray-50 rounded-lg text-gray-700 font-medium">{c.name}</div>)}
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="font-bold text-lg mb-4">Adicionar Produto</h3>
-              <form onSubmit={addProduct} className="space-y-4">
-                <input required placeholder="Nome do Produto" value={newProd.name} onChange={e=>setNewProd({...newProd, name: e.target.value})} className="w-full p-3 rounded-xl border border-gray-200 outline-none focus:border-orange-500" />
-                <div className="flex gap-4">
-                  <input required type="number" step="0.01" placeholder="Preço" value={newProd.price} onChange={e=>setNewProd({...newProd, price: e.target.value})} className="w-1/2 p-3 rounded-xl border border-gray-200 outline-none focus:border-orange-500" />
-                  <select required value={newProd.category_id} onChange={e=>setNewProd({...newProd, category_id: e.target.value})} className="w-1/2 p-3 rounded-xl border border-gray-200 outline-none focus:border-orange-500 bg-white">
-                    <option value="">Categoria...</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  {/* Gráfico Fake / Atividade Recente */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+                       <div className="flex justify-between items-center mb-6">
+                         <h3 className="font-bold text-lg text-slate-800">Fluxo da Semana</h3>
+                         <select className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:border-orange-500"><option>Últimos 7 dias</option></select>
+                       </div>
+                       <div className="h-64 flex items-end gap-2 w-full">
+                         {/* Barras decorativas do dashboard para visual premium */}
+                         {[30, 50, 40, 70, 90, 60, 100].map((h, i) => (
+                           <div key={i} className="flex-1 bg-orange-100 rounded-t-xl group relative">
+                             <div className="absolute bottom-0 w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-xl transition-all duration-500 group-hover:bg-orange-600" style={{height:`${h}%`}}></div>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 overflow-hidden">
+                       <h3 className="font-bold text-lg text-slate-800 mb-6">Pedidos Recentes</h3>
+                       <div className="space-y-4">
+                         {orders.slice(0, 4).map(o => (
+                           <div key={o.id} className="flex items-center gap-4">
+                             <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-bold text-slate-600">#{o.id.slice(-3)}</div>
+                             <div>
+                               <p className="font-bold text-slate-800">{o.customer?.name || 'Cliente'}</p>
+                               <p className="text-xs text-slate-500 font-medium">{new Date(o.created_at).toLocaleTimeString()}</p>
+                             </div>
+                             <div className="ml-auto font-bold text-green-600">
+                               R$ {o.total.toFixed(2)}
+                             </div>
+                           </div>
+                         ))}
+                         {orders.length === 0 && <p className="text-slate-500 text-sm italic text-center mt-10">Nenhum pedido ainda.</p>}
+                       </div>
+                    </div>
+                  </div>
                 </div>
-                <textarea placeholder="Descrição (Opcional)" value={newProd.description} onChange={e=>setNewProd({...newProd, description: e.target.value})} className="w-full p-3 rounded-xl border border-gray-200 outline-none focus:border-orange-500 h-24 resize-none" />
-                <button className="w-full bg-orange-500 text-white font-bold px-6 py-3 rounded-xl hover:bg-orange-600 transition">Salvar Produto</button>
-              </form>
-            </div>
-            
-            <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-               <h3 className="font-bold text-lg mb-4">Produtos Cadastrados</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                 {products.map(p => (
-                   <div key={p.id} className="border border-gray-100 p-4 rounded-xl items-center flex justify-between">
+              )}
+
+              {/* === CENTRAL DE PEDIDOS (KANBAN) === */}
+              {activeTab === 'orders' && (
+                <div className="h-full">
+                  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 mb-6">
+                    <p className="text-slate-500 font-medium">Os pedidos caem aqui em tempo real pelo WhatsApp ou pelo seu Link. Mova-os pelas colunas para notificar o celular do cliente.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+                    {/* Coluna 1 PENDING */}
+                    <div className="bg-slate-100/50 rounded-3xl p-5 border border-slate-200/60 flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span> Aguardando Aceitação
+                        </h3>
+                        <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">{orders.filter(o=>o.status==='PENDING').length}</span>
+                      </div>
+                      <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        <AnimatePresence>
+                          {orders.filter(o=>o.status==='PENDING').map(o => (
+                            <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.9}} key={o.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group">
+                              <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="font-extrabold text-slate-800">#{o.id.slice(-4)}</span>
+                                <span className="text-sm font-black text-green-600 bg-green-50 px-2.5 py-1 rounded-lg">R$ {o.total.toFixed(2)}</span>
+                              </div>
+                              <p className="font-bold text-slate-700 flex items-center gap-1.5"><Users size={14} className="text-slate-400"/> {o.customer?.name}</p>
+                              <div className="mt-3 space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                {o.items.map((it:any) => <div key={it.id} className="text-sm text-slate-700 font-medium"><b>{it.quantity}x</b> {it.product?.name}</div>)}
+                              </div>
+                              <button onClick={()=>updateOrderStatus(o.id, 'PREPARING')} className="w-full mt-4 bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600 transition-colors shadow-md shadow-red-500/20">
+                                Aceitar & Preparar
+                              </button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    {/* Coluna 2 PREPARING */}
+                    <div className="bg-slate-100/50 rounded-3xl p-5 border border-slate-200/60 flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-blue-500"></span> Na Chapa / Preparando
+                        </h3>
+                        <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">{orders.filter(o=>o.status==='PREPARING').length}</span>
+                      </div>
+                      <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                         <AnimatePresence>
+                          {orders.filter(o=>o.status==='PREPARING').map(o => (
+                            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} key={o.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="font-extrabold text-slate-800">#{o.id.slice(-4)}</span>
+                              </div>
+                              <p className="font-bold text-slate-700">{o.customer?.name}</p>
+                              <p className="text-xs text-slate-500 mt-1">End: {o.delivery_address}</p>
+                              <button onClick={()=>updateOrderStatus(o.id, 'DELIVERED')} className="w-full mt-4 bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition-colors shadow-md shadow-blue-500/20 flex items-center justify-center gap-2">
+                                <Truck size={18}/> Saiu para Entrega
+                              </button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    {/* Coluna 3 DELIVERED */}
+                     <div className="bg-green-50/50 rounded-3xl p-5 border border-green-100/60 flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-green-800 flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-green-500"></span> Entregues / Finalizados
+                        </h3>
+                      </div>
+                      <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                         <AnimatePresence>
+                          {orders.filter(o=>o.status==='DELIVERED').map(o => (
+                            <motion.div initial={{opacity:0}} animate={{opacity:1}} key={o.id} className="bg-white p-4 rounded-2xl shadow-sm border border-green-100 relative overflow-hidden opacity-60 hover:opacity-100 transition-opacity">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-slate-500 line-through">#{o.id.slice(-4)}</span>
+                                <CheckCircle2 className="text-green-500" size={20}/>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === CARDÁPIO === */}
+              {activeTab === 'menu' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Formulários */}
+                  <div className="space-y-6">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="bg-orange-100 p-2 rounded-xl text-orange-600"><Menu size={24}/></div>
+                        <h3 className="font-extrabold text-xl text-slate-800">Nova Categoria</h3>
+                      </div>
+                      <form onSubmit={addCategory} className="flex gap-3">
+                        <input required placeholder="Ex: Bebidas" value={newCat} onChange={e=>setNewCat(e.target.value)} className="flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-medium text-slate-700" />
+                        <button className="bg-slate-900 text-white font-bold px-6 rounded-2xl hover:bg-slate-800 transition-colors shadow-lg"><PlusCircle/></button>
+                      </form>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="bg-orange-100 p-2 rounded-xl text-orange-600"><UtensilsCrossed size={24}/></div>
+                        <h3 className="font-extrabold text-xl text-slate-800">Novo Lanche</h3>
+                      </div>
+                      <form onSubmit={addProduct} className="space-y-5">
+                        <input required placeholder="Nome do Sanduíche. Ex: X-Tudo" value={newProd.name} onChange={e=>setNewProd({...newProd, name: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-medium text-slate-700" />
+                        
+                        <div className="flex gap-4">
+                          <div className="relative w-1/2">
+                            <span className="absolute left-4 top-4 font-bold text-slate-400">R$</span>
+                            <input required type="number" step="0.01" placeholder="0.00" value={newProd.price} onChange={e=>setNewProd({...newProd, price: e.target.value})} className="w-full p-4 pl-12 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-bold text-slate-700" />
+                          </div>
+                          <select required value={newProd.category_id} onChange={e=>setNewProd({...newProd, category_id: e.target.value})} className="w-1/2 p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-medium text-slate-700 appearance-none">
+                            <option value="">Categoria...</option>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        
+                        <textarea placeholder="Ingredientes e descrição deliciosa..." value={newProd.description} onChange={e=>setNewProd({...newProd, description: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 focus:bg-white transition-all font-medium text-slate-700 h-32 resize-none" />
+                        
+                        <button className="w-full bg-orange-500 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-colors">
+                          Colocar à Venda!
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                  
+                  {/* Preview do Cardápio ao lado */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <h3 className="font-extrabold text-2xl text-slate-800">Seus Lanches</h3>
+                    {categories.map(c => (
+                      <div key={c.id} className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
+                        <h4 className="text-xl font-bold text-orange-500 mb-6 border-b border-slate-100 pb-3">{c.name}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {products.filter(p=>p.category_id === c.id).map(p => (
+                            <div key={p.id} className="flex flex-col bg-slate-50 p-5 rounded-2xl border border-slate-200 group hover:border-orange-300 transition-colors">
+                               <div className="flex justify-between items-start mb-2">
+                                 <h5 className="font-bold text-slate-800 text-lg">{p.name}</h5>
+                                 <span className="bg-green-100 text-green-700 font-bold px-3 py-1 rounded-lg">R$ {p.price.toFixed(2)}</span>
+                               </div>
+                               <p className="text-sm text-slate-500 font-medium leading-relaxed">{p.description}</p>
+                            </div>
+                          ))}
+                          {products.filter(p=>p.category_id === c.id).length === 0 && <span className="text-slate-400 italic">Nenhum produto cadastrado aqui.</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* === CRM CLIENTES === */}
+              {activeTab === 'crm' && (
+                <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
+                   <div className="flex justify-between items-center mb-8 border-b border-slate-100 pb-6">
                      <div>
-                       <div className="font-semibold text-gray-800">{p.name}</div>
-                       <div className="text-orange-600 font-bold">R$ {p.price.toFixed(2)}</div>
+                       <h3 className="text-2xl font-extrabold text-slate-800">Meus Clientes Fiéis</h3>
+                       <p className="text-slate-500 font-medium">Bater banco de dados do WhatsApp</p>
                      </div>
-                     <div className="text-xs bg-gray-100 px-2 py-1 rounded-md text-gray-600">{p.category?.name}</div>
+                     <div className="relative">
+                       <Search className="absolute left-4 top-4 text-slate-400" size={20}/>
+                       <input type="text" placeholder="Buscar por número..." className="pl-12 pr-4 py-3 bg-slate-50 rounded-2xl border border-slate-200 w-64 outline-none focus:border-orange-500 font-medium" />
+                     </div>
                    </div>
-                 ))}
-               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="max-w-xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center">
-            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <QrCode size={32}/>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">Bot do WhatsApp</h3>
-            <p className="text-gray-500 mb-8">Conecte o número do seu atendimento para enviar o cardápio e atualizar os clientes automaticamente.</p>
-            
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col items-center">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="font-semibold text-gray-700">Status atual:</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${waStatus==='CONNECTED'?'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                  {waStatus === 'CONNECTED' ? 'Online' : 'Desconectado'}
-                </span>
-              </div>
-              
-              {waStatus !== 'CONNECTED' && !waQr && (
-                <button onClick={connectWA} className="bg-orange-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:bg-orange-600 transition">
-                  Gerar QR Code
-                </button>
-              )}
-              
-              {waQr && (
-                <div className="bg-white p-4 rounded-xl shadow-sm inline-block">
-                  <QRCode value={waQr} size={200} />
-                  <p className="text-sm text-gray-500 mt-4 font-medium">Escaneie com o seu WhatsApp</p>
+                   
+                   <div className="overflow-x-auto">
+                     <table className="w-full text-left">
+                       <thead>
+                         <tr className="text-slate-400 font-bold text-sm uppercase tracking-wider border-b border-slate-100">
+                           <th className="pb-4 pl-4">Cliente / Número</th>
+                           <th className="pb-4">Qtd Pedidos</th>
+                           <th className="pb-4">Total Gasto</th>
+                           <th className="pb-4">Ação</th>
+                         </tr>
+                       </thead>
+                       <tbody className="text-slate-700 font-medium">
+                         {customers.map((c, i) => (
+                           <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                             <td className="py-5 pl-4 flex items-center gap-4">
+                               <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex justify-center items-center font-bold">{c.name.charAt(0)}</div>
+                               <div>
+                                 <p className="font-bold text-slate-800">{c.name}</p>
+                                 <p className="text-xs text-slate-500">{c.phone}</p>
+                               </div>
+                             </td>
+                             <td className="py-5"><span className="bg-slate-100 px-3 py-1 rounded-lg">{c.orders} pedidos</span></td>
+                             <td className="py-5 text-green-600 font-bold">R$ {c.total_spent.toFixed(2)}</td>
+                             <td className="py-5"><button className="text-orange-500 font-bold hover:underline">Ver Histórico</button></td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
                 </div>
               )}
-            </div>
-            
-            <div className="mt-8 text-left bg-blue-50 p-6 rounded-2xl border border-blue-100">
-               <h4 className="font-bold text-blue-800 mb-2">Link do seu Cardápio</h4>
-               <p className="text-sm text-blue-600 mb-2">Compartilhe este link no Instagram ou envie diretamente para os clientes:</p>
-               <div className="bg-white p-3 rounded-xl border border-blue-200 font-mono text-sm text-gray-800 font-medium">
-                 {window.location.origin}/catalogo/{user?.slug}
-               </div>
-            </div>
-          </div>
-        )}
+
+              {/* === SETTINGS / WHATSAPP === */}
+              {activeTab === 'settings' && (
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 flex-1 max-w-xl text-center">
+                    <div className="w-20 h-20 bg-green-50 text-green-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                      <QrCode size={40}/>
+                    </div>
+                    <h3 className="text-3xl font-extrabold text-slate-800 mb-2">Motor do WhatsApp</h3>
+                    <p className="text-slate-500 font-medium mb-10 text-lg leading-relaxed">Conecte o seu celular da loja para que o <strong className="text-green-600">robô trabalhe sozinho</strong> enviando cardápio num instante.</p>
+                    
+                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200">
+                      <div className="flex flex-col items-center justify-center gap-4 mb-6">
+                        <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${waStatus==='CONNECTED'?'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {waStatus === 'CONNECTED' ? '🟢 Conectado & Operando' : '🔴 Desconectado'}
+                        </span>
+                      </div>
+                      
+                      {waStatus !== 'CONNECTED' && !waQr && (
+                        <button onClick={connectWA} className="w-full bg-slate-900 text-white font-black text-lg py-5 rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all hover:scale-[1.02]">
+                          Gerar QR Code Agora
+                        </button>
+                      )}
+                      
+                      {waQr && (
+                        <motion.div initial={{scale:0.8, opacity:0}} animate={{scale:1, opacity:1}} className="bg-white p-6 rounded-3xl shadow-xl inline-block border border-slate-100">
+                          <QRCode value={waQr} size={240} className="rounded-lg" />
+                          <p className="text-slate-500 font-bold mt-6 text-sm bg-slate-100 py-2 rounded-xl">Abra o WhatsApp e escaneie!</p>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-10 rounded-3xl shadow-lg border border-blue-500 text-white max-w-md flex flex-col justify-center relative overflow-hidden">
+                     <div className="absolute top-0 right-0 opacity-10 scale-150 transform translate-x-10 -translate-y-10"><UtensilsCrossed size={200}/></div>
+                     <h4 className="text-3xl font-black mb-4 relative z-10">Seu Link Mágico</h4>
+                     <p className="text-blue-100 font-medium mb-8 text-lg relative z-10 leading-relaxed">Coloque esse link na Bio do seu Instagram. É este link que os clientes vão usar!</p>
+                     <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 font-mono text-lg font-bold shadow-inner relative z-10 break-all cursor-copy hover:bg-white/20 transition-colors" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/catalogo/${user?.slug}`)}>
+                       {window.location.origin}/catalogo/{user?.slug}
+                     </div>
+                     <p className="text-center mt-4 text-sm font-bold text-blue-200">Clique no quadrinho para copiar</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );
