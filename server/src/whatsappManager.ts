@@ -2,6 +2,7 @@ import makeWASocket, { DisconnectReason, useMultiFileAuthState, makeCacheableSig
 import { Boom } from '@hapi/boom';
 import path from 'path';
 import fs from 'fs';
+import axios from 'axios';
 import { prisma } from './db.js';
 import pino from 'pino';
 import { fileURLToPath } from 'url';
@@ -354,9 +355,23 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
             mem.address = input;
             
             // CÁLCULO DE DISTÂNCIA DINÂMICO
-            // Como não temos API Key do Google, geramos uma rota simulada baseada na string do endereço
-            // Em prod: substituir por chamada Google Distance Matrix.
-            const distanceKm = Math.max(1.5, (input.length % 8) + 1.2); 
+            let distanceKm = Math.max(1.5, (input.length % 8) + 1.2); // Fallback padrão Simulação
+
+            if (process.env.GOOGLE_MAPS_API_KEY) {
+                try {
+                    // Opcional: Aqui poderíamos concatenar a base do Restaurante (origem) se o Tenant tiver Endereço.
+                    // Para o exemplo, pegamos o centro comercial neutro ou vc pode plugar a var Tenant_Address.
+                    const origin = encodeURIComponent("Centro, Goiania, GO"); 
+                    const destination = encodeURIComponent(`${input}, Goiania, GO`);
+                    const gmapRes = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
+                    
+                    if (gmapRes.data.rows[0].elements[0].status === "OK") {
+                        const meters = gmapRes.data.rows[0].elements[0].distance.value;
+                        distanceKm = meters / 1000;
+                    }
+                } catch(e) { console.log('Erro no gmaps, usando fallback', e); }
+            }
+
             const dynFee = tenant.delivery_fee + (distanceKm * 1.50); // Taxa base + 1.50/km
             const totalComTaxa = mem.finalTotal + dynFee;
             
