@@ -395,8 +395,14 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
             // Emit to Dashboard
             eventBus.emit(EVENTS.NEW_ORDER, order);
 
+            // Automatically create delivery request
+            const deliveryReq = await prisma.deliveryRequest.create({
+                 data: { tenant_id: tenantId, order_id: order.id, status: 'PENDING' }
+            });
+            eventBus.emit(EVENTS.NEW_DELIVERY_REQUEST, { tenantId, request: { ...deliveryReq, order } });
+
             botMemory.delete(remoteJid);
-            await humanizedSendMessage(sock, remoteJid, { text: `🎉 *PEDIDO REALIZADO COM SUCESSO!*\nNúmero do pedido: #${order.id.slice(-4)}\n\nNossa cozinha já foi notificada na tela deles, e vamos começar a preparar com muito carinho. O robô vai te mandar mensagem automática avisando quando sair para entrega!\n\nMuito obrigado por comprar com a ${tenant.name}!` });
+            await humanizedSendMessage(sock, remoteJid, { text: `🎉 *PEDIDO REALIZADO COM SUCESSO!*\nNúmero do pedido: #${order.id.slice(-4)}\n\nNossa cozinha já foi notificada e seu pedido está sendo preparado 🍔.\nVamos começar a disparar chamadas para nossos motoboys e o robô vai te mandar mensagem automática avisando quando sair para entrega!` });
             return;
         }
 

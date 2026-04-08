@@ -51,6 +51,9 @@ model Tenant {
   orders           Order[]
   leads            Lead[]
   chatMessages     ChatMessage[]
+  deliveryDrivers  DeliveryDriver[]
+  deliveryRequests DeliveryRequest[]
+  deliveryTrackings DeliveryTracking[]
 }
 
 model SaasPlan {
@@ -164,6 +167,9 @@ model Order {
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+  
+  deliveryRequest   DeliveryRequest?
+  deliveryTrackings DeliveryTracking[]
 }
 
 model OrderItem {
@@ -242,3 +248,43 @@ model NotificationSettings {
   updated_at      DateTime @default(now())
 }
 
+model DeliveryDriver {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  name        String
+  phone       String   @unique
+  password    String 
+  isOnline    Boolean  @default(false)
+  latitude    Float?
+  longitude   Float?
+  created_at  DateTime @default(now())
+
+  requests    DeliveryRequest[]
+  trackings   DeliveryTracking[]
+}
+
+model DeliveryRequest {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  order_id    String   @unique
+  order       Order    @relation(fields: [order_id], references: [id])
+  driver_id   String?
+  driver      DeliveryDriver? @relation(fields: [driver_id], references: [id])
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  created_at  DateTime @default(now())
+}
+
+model DeliveryTracking {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  driver_id   String
+  driver      DeliveryDriver @relation(fields: [driver_id], references: [id])
+  order_id    String
+  order       Order    @relation(fields: [order_id], references: [id])
+  latitude    Float
+  longitude   Float
+  updated_at  DateTime @updatedAt
+}

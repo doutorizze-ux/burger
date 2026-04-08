@@ -7,5 +7,8 @@ export const EVENTS = {
     CHECKIN_DENIED: 'checkin:denied',
     NEW_MESSAGE: 'chat:new_message',
     ATTENDANCE_REQUESTED: 'attendance:requested',
-    NEW_ORDER: 'order:new'
+    NEW_ORDER: 'order:new',
+    NEW_DELIVERY_REQUEST: 'delivery:new_request',
+    DELIVERY_ACCEPTED: 'delivery:accepted',
+    DELIVERY_EXPIRED: 'delivery:expired'
 };

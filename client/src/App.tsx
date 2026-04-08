@@ -9,6 +9,8 @@ import Login from './pages/Login';
 
 import LandingPage from './pages/LandingPage';
 import SuperAdmin from './pages/SuperAdmin';
+import DriverPanel from './pages/DriverPanel';
+import TrackingPage from './pages/TrackingPage';
 
 export const AuthContext = React.createContext<any>(null);
 
@@ -42,6 +44,8 @@ function App() {
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" />} />
           <Route path="/catalogo/:slug" element={<Catalog />} />
           <Route path="/superadmin" element={user ? <SuperAdmin /> : <Navigate to="/login" />} />
+          <Route path="/driver" element={<DriverPanel />} />
+          <Route path="/tracking/:orderId" element={<TrackingPage />} />
         </Routes>
       </BrowserRouter>
       <ToastContainer position="bottom-right" />

@@ -87,10 +87,30 @@ export const io = new Server(server, {
 
 io.on('connection', (socket) => {
     socket.on('join', (tenantId) => socket.join(tenantId));
+    socket.on('driver_online', async ({ tenantId, driverId, lat, lng }) => {
+        socket.join(`driver_${tenantId}`);
+        socket.join(`driver_${tenantId}_${driverId}`);
+        await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: true, latitude: lat, longitude: lng } });
+    });
+    socket.on('driver_offline', async ({ driverId }) => {
+        await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: false } });
+    });
+    socket.on('driver_location', async ({ tenantId, driverId, lat, lng, orderId }) => {
+        await prisma.deliveryDriver.update({ where: { id: driverId }, data: { latitude: lat, longitude: lng } });
+        if (orderId) {
+             await prisma.deliveryTracking.create({ data: { tenant_id: tenantId, driver_id: driverId, order_id: orderId, latitude: lat, longitude: lng } });
+        }
+        io.to(`tracking_${orderId}`).emit('delivery_update_location', { lat, lng });
+    });
+    socket.on('join_tracking', (orderId) => socket.join(`tracking_${orderId}`));
 });
 
 eventBus.on(EVENTS.NEW_MESSAGE, (msg) => {
     io.to(msg.tenant_id).emit('new_message', msg);
+});
+
+eventBus.on(EVENTS.NEW_DELIVERY_REQUEST, ({ tenantId, request }) => {
+    io.to(`driver_${tenantId}`).emit('new_delivery_request', request);
 });
 
 // START: ROUTES
@@ -393,8 +413,58 @@ app.post('/api/chat/send', authMiddleware, async (req: any, res) => {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/leads', authMiddleware, async (req: any, res) => {
-    res.json([]);
+// --- MOTOBODY API ---
+app.post('/api/driver/login', async (req: any, res) => {
+    try {
+        const { phone, password } = req.body;
+        const driver = await prisma.deliveryDriver.findUnique({ where: { phone } });
+        if (!driver || driver.password !== password) return res.status(401).json({ error: 'Credenciais inválidas' });
+        const token = jwt.sign({ driver_id: driver.id, tenant_id: driver.tenant_id, type: 'DRIVER' }, JWT_SECRET!);
+        res.json({ token, driver });
+    } catch(e) { res.status(500).json({ error: 'Erro no login' }); }
+});
+
+app.get('/api/driver/requests', authMiddleware, async (req: any, res) => {
+    if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
+    try {
+        const requests = await prisma.deliveryRequest.findMany({
+             where: { tenant_id: req.user.tenant_id, status: 'PENDING' },
+             include: { order: { include: { customer: true } } }
+        });
+        res.json(requests);
+    } catch(e) { res.status(500).json({ error: 'Erro' }); }
+});
+
+app.post('/api/driver/accept/:requestId', authMiddleware, async (req: any, res) => {
+    if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
+    try {
+        const request = await prisma.deliveryRequest.findUnique({ where: { id: req.params.requestId }, include: { order: { include: { customer: true } } } });
+        if (!request || request.status !== 'PENDING') return res.status(400).json({ error: 'Não disponível' });
+        
+        await prisma.$transaction([
+            prisma.deliveryRequest.update({ where: { id: request.id }, data: { status: 'ACCEPTED', driver_id: req.user.driver_id } }),
+            prisma.order.update({ where: { id: request.order_id }, data: { status: 'OUT_FOR_DELIVERY' } })
+        ]);
+        
+        // Notify others
+        io.to(`driver_${req.user.tenant_id}`).emit('delivery_accepted', { requestId: request.id });
+        io.to(req.user.tenant_id).emit('order_out', { orderId: request.order_id });
+        
+        // WhatsApp notify
+        const trackingUrl = `http://localhost:5173/tracking/${request.order_id}`; // Adjust domain in prod
+        if (request.order.customer.whatsapp_jid) {
+            await sendMessageToJid(req.user.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido saiu para entrega com nosso motoboy! 🛵💨\nAcompanhe ao vivo pelo GPS:\n${trackingUrl}`);
+        }
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: 'Erro' }); }
+});
+
+app.get('/api/tracking/:orderId', async (req: any, res) => {
+    try {
+        const order = await prisma.order.findUnique({ where: { id: req.params.orderId }, include: { customer: true, deliveryTrackings: { orderBy: { updated_at: 'desc' }, take: 1 } } });
+        if (!order) return res.status(404).json({ error: 'Não encontrado' });
+        res.json(order);
+    } catch(e) { res.status(500).json({ error: 'Erro' }); }
 });
 
 
