@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model SaasOwner {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+}
+
+model Tenant {
+  id               String   @id @default(uuid())
+  name             String
+  slug             String   @unique
+  whatsapp_number  String?  @unique
+  whatsapp_status  String   @default("DISCONNECTED")
+  status           String   @default("ACTIVE")
+  owner_phone      String?
+  logo_url         String?
+  primary_color    String   @default("#f97316")
+  
+  opening_time      String?
+  closing_time      String?
+  
+  delivery_fee      Float   @default(5.00)
+  min_order_value   Float   @default(0.00)
+
+  saas_plan_id     String?
+  saas_plan        SaasPlan? @relation(fields: [saas_plan_id], references: [id])
+  saas_plan_expires_at DateTime?
+  
+  asaas_customer_id String?
+  subscription_id   String?
+  subscription_cycle String?
+  payment_method    String?
+  payment_status    String  @default("PENDING")
+  is_free           Boolean @default(false)
+
+  paymentHistory    PaymentHistory[]
+  created_at       DateTime @default(now())
+  
+  admins           GymAdmin[]
+  customers        Customer[]
+  categories       Category[]
+  products         Product[]
+  orders           Order[]
+  leads            Lead[]
+  chatMessages     ChatMessage[]
+}
+
+model SaasPlan {
+  id          String   @id @default(uuid())
+  name        String
+  price       Decimal
+  description String?
+  features    String?
+  max_members Int      @default(50)
+  duration_months Int    @default(1)
+  active          Boolean  @default(true)
+  created_at  DateTime @default(now())
+  tenants     Tenant[]
+}
+
+model PaymentHistory {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id])
+  amount          Decimal
+  method          String
+  status          String
+  asaas_payment_id String?
+  created_at      DateTime @default(now())
+  paid_at         DateTime?
+}
+
+// Kept as GymAdmin to minimize auth breakdown in frontend initially
+model GymAdmin {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  tenant_id     String
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id])
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  name            String
+  phone           String
+  whatsapp_jid    String?  @unique
+  
+  cpf             String?
+  address         String?
+  
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id])
+
+  orders          Order[]
+  chatMessages    ChatMessage[]
+
+  bot_paused      Boolean  @default(false)
+  created_at      DateTime @default(now())
+  
+  @@unique([phone, tenant_id])
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  name        String
+  active      Boolean  @default(true)
+  products    Product[]
+  created_at  DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  category_id String?
+  category    Category? @relation(fields: [category_id], references: [id])
+  name        String
+  description String?
+  price       Float
+  image_url   String?
+  active      Boolean  @default(true)
+  extras      ProductExtra[]
+  orderItems  OrderItem[]
+  created_at  DateTime @default(now())
+}
+
+model ProductExtra {
+  id          String   @id @default(uuid())
+  product_id  String
+  product     Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  name        String
+  price       Float
+  active      Boolean  @default(true)
+  orderItemExtras OrderItemExtra[]
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id])
+  customer_id     String
+  customer        Customer @relation(fields: [customer_id], references: [id])
+  
+  status          String   @default("PENDING") // PENDING, CONFIRMED, PREPARING, DELIVERED, CANCELLED
+  total           Float
+  delivery_fee    Float
+  delivery_address String?
+  payment_method  String?  // PIX, CASH, CREDIT_CARD
+  payment_status  String   @default("PENDING")
+  notes           String?
+  
+  items           OrderItem[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  order_id    String
+  order       Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product_id  String
+  product     Product  @relation(fields: [product_id], references: [id])
+  quantity    Int      @default(1)
+  unit_price  Float
+  notes       String?
+  
+  extras      OrderItemExtra[]
+}
+
+model OrderItemExtra {
+  id              String   @id @default(uuid())
+  order_item_id   String
+  order_item      OrderItem @relation(fields: [order_item_id], references: [id], onDelete: Cascade)
+  extra_id        String
+  extra           ProductExtra @relation(fields: [extra_id], references: [id])
+  quantity        Int      @default(1)
+  price           Float
+}
+
+model Lead {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id])
+  name            String?
+  phone           String
+  whatsapp_jid    String?  @unique
+  last_message    String?
+  last_message_at DateTime @default(now())
+  created_at      DateTime @default(now())
+  
+  status          String   @default("new")
+  value           Float    @default(0)
+  
+  messages        ChatMessage[]
+
+  @@unique([phone, tenant_id], name: "phone_tenant_id")
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id])
+  lead_id         String?
+  lead            Lead?    @relation(fields: [lead_id], references: [id])
+  customer_id     String?
+  customer        Customer? @relation(fields: [customer_id], references: [id])
+  
+  content         String
+  from_me         Boolean  @default(false)
+  jid             String
+  media_url       String?
+  type            String   @default("text")
+  
+  created_at      DateTime @default(now())
+}
+
+model SystemSettings {
+  id        String   @id @default("global")
+  site_name String   @default("ZapDelivery")
+  logo_url  String?
+  updated_at DateTime @updatedAt
+}
+
+model NotificationSettings {
+  id              String   @id @default(uuid())
+  tenant_id       String   @unique
+  checkin_success String   @default("Pedido M")
+  plan_warning    String   @default("-")
+  plan_expired    String   @default("-")
+  updated_at      DateTime @default(now())
+}
+
