@@ -372,8 +372,33 @@ if (fs.existsSync(publicDir)) {
     });
 }
 
-app.listen(process.env.PORT || 3000, () => {
+const seedDatabase = async () => {
+    const count = await prisma.tenant.count();
+    if (count === 0) {
+        console.log('Seeding initial PitDog store...');
+        const hashedPassword = await bcrypt.hash('123456', 10);
+        const tenant = await prisma.tenant.create({
+            data: {
+                name: 'PitDog Demo',
+                slug: 'pitdog-demo',
+                status: 'ACTIVE',
+                payment_status: 'ACTIVE',
+            }
+        });
+        await prisma.gymAdmin.create({
+            data: {
+                name: 'Admin',
+                email: 'admin@admin.com',
+                password: hashedPassword,
+                tenant_id: tenant.id
+            }
+        });
+    }
+};
+
+app.listen(process.env.PORT || 3000, async () => {
     console.log(`Server is running on port ${process.env.PORT || 3000}`);
+    await seedDatabase();
     initScheduler();
     setTimeout(reconnectSessions, 2000);
 });
