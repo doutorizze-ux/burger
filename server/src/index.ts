@@ -174,6 +174,9 @@ app.put('/api/superadmin/tenants/:id/toggle', authMiddleware, async (req: any, r
 
 app.post('/api/whatsapp/connect', authMiddleware, async (req: any, res) => {
     const tenantId = req.user.tenant_id;
+    // Wipe previous stubborn offline session that prevents new QR from emitting
+    await logoutSession(tenantId);
+    
     initWhatsApp(
         tenantId,
         (qr) => io.to(tenantId).emit('qr_code', qr),
