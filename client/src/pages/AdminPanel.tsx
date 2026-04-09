@@ -41,14 +41,18 @@ export default function AdminPanel() {
   });
 
   const [activeDriversLocations, setActiveDriversLocations] = useState<any>({});
-  const [mapCenter, setMapCenter] = useState({ lat: -16.6869, lng: -49.2648 });
+  const [mapCenter, setMapCenter] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     fetchData();
     
+    // Auto-center user city - only set if mapCenter is null
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
             setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }, (err) => {
+            // If GPS blocked, then use a fallback city or stay null
+            setMapCenter({ lat: -16.6869, lng: -49.2648 });
         });
     }
     
@@ -354,10 +358,10 @@ export default function AdminPanel() {
                    <div className="bg-white p-8 rounded-[40px] border border-slate-100">
                       <h4 className="font-black text-xl mb-6 flex items-center gap-2"><MapIcon/> Mapa Real-Time</h4>
                       <div className="h-[400px] bg-slate-50 rounded-3xl overflow-hidden border">
-                         {isLoaded ? (
+                         {isLoaded && mapCenter ? (
                             <GoogleMap
                                mapContainerStyle={mapContainerStyle}
-                               center={mapCenter}
+                               center={Object.values(activeDriversLocations)[0] as any || mapCenter}
                                zoom={14}
                                options={{ styles: uberMapStyle }}
                             >
@@ -365,7 +369,7 @@ export default function AdminPanel() {
                                  <Marker key={id} position={activeDriversLocations[id]} icon={{ url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png", scaledSize: new window.google.maps.Size(40,40) }} />
                                ))}
                             </GoogleMap>
-                         ) : <div>Carregando Mapa...</div>}
+                         ) : <div className="h-full flex items-center justify-center font-bold text-slate-300 animate-pulse">Detectando sua cidade...</div>}
                       </div>
                    </div>
                 </div>
