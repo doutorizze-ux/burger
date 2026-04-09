@@ -46,12 +46,12 @@ export default function AdminPanel() {
   useEffect(() => {
     fetchData();
     
-    // Auto-center user city - only set if mapCenter is null
+    // Auto-center user city
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
             setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         }, () => {
-             setMapCenter({ lat: -16.6869, lng: -49.2648 });
+             console.log("GPS Blocked");
         });
     }
     

@@ -13,7 +13,7 @@ export default function SuperAdmin() {
   const [stats, setStats] = useState<any>(null);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [newDriver, setNewDriver] = useState({ name: '', phone: '', password: '' });
-  const [mapCenter, setMapCenter] = useState({ lat: -16.6869, lng: -49.2648 });
+  const [mapCenter, setMapCenter] = useState<{lat: number, lng: number} | null>(null);
   
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -27,6 +27,8 @@ export default function SuperAdmin() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
             setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }, () => {
+             console.log("GPS Blocked");
         });
     }
     
@@ -113,10 +115,10 @@ export default function SuperAdmin() {
         <div className="bg-slate-800 p-8 rounded-[40px] border border-slate-700 shadow-2xl mb-12">
            <h3 className="font-black text-2xl text-white mb-6 flex items-center gap-3"><MapIcon className="text-indigo-400"/> Mapa de Operação Real-time</h3>
            <div className="h-[400px] bg-slate-700 rounded-3xl flex items-center justify-center overflow-hidden border border-slate-600">
-              {isLoaded ? (
+              {isLoaded && (onlineDrivers[0] || mapCenter) ? (
                 <GoogleMap
                    mapContainerStyle={mapContainerStyle}
-                   center={onlineDrivers[0] ? { lat: onlineDrivers[0].latitude, lng: onlineDrivers[0].longitude } : mapCenter}
+                   center={onlineDrivers[0] ? { lat: onlineDrivers[0].latitude, lng: onlineDrivers[0].longitude } : (mapCenter || { lat: 0, lng: 0})}
                    zoom={12}
                    options={{ styles: uberMapStyle }}
                 >
