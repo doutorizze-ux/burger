@@ -75,12 +75,6 @@ export default function AdminPanel() {
     return () => { socket.disconnect(); };
   }, [user]);
 
-  const fetchDrivers = () => {
-    fetch('/api/drivers/online', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
-      .then(r => r.json())
-      .then(setDrivers);
-  };
-
   const fetchData = () => {
     fetch('/api/orders', {headers}).then(r=>r.json()).then(setOrders);
     fetch('/api/categories', {headers}).then(r=>r.json()).then(setCategories);
