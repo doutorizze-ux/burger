@@ -15,6 +15,7 @@ export default function AdminPanel() {
   const [categories, setCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
   const [waStatus, setWaStatus] = useState(user?.whatsapp_status);
   const [waQr, setWaQr] = useState('');
   
@@ -28,6 +29,8 @@ export default function AdminPanel() {
   const [newProd, setNewProd] = useState({ name: '', price: '', category_id: '', description: '', extras: [] as any[] });
   const [tempExtraName, setTempExtraName] = useState('');
   const [tempExtraPrice, setTempExtraPrice] = useState('');
+  
+  const [newDriver, setNewDriver] = useState({ name: '', phone: '', password: '' });
 
   const token = localStorage.getItem('token');
   const headers = { 'Authorization': `Bearer ${token}` };
@@ -51,6 +54,7 @@ export default function AdminPanel() {
     fetch('/api/categories', {headers}).then(r=>r.json()).then(setCategories);
     fetch('/api/products', {headers}).then(r=>r.json()).then(setProducts);
     fetch('/api/chats', {headers}).then(r=>r.json()).then(setCustomers);
+    fetch('/api/admin/drivers', {headers}).then(r=>r.json()).then(setDrivers);
   };
 
   const loadChat = async (customer: any) => {
@@ -88,10 +92,30 @@ export default function AdminPanel() {
 
   const addProduct = async (e:any) => {
     e.preventDefault();
-    await fetch('/api/products', { method: 'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(newProd) });
+    const res = await fetch('/api/products', { method: 'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(newProd) });
+    const data = await res.json();
+    setProducts([...products, data]);
     setNewProd({ name: '', price: '', category_id: '', description: '', extras: [] });
-    // setTempExtraName(''); setTempExtraPrice('');
-    fetchData();
+  };
+
+  const addDriver = async (e: any) => {
+    e.preventDefault();
+    const res = await fetch('/api/admin/drivers', {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(newDriver)
+    });
+    if (res.ok) {
+        const data = await res.json();
+        setDrivers([...drivers, data]);
+        setNewDriver({ name: '', phone: '', password: '' });
+    }
+  };
+
+  const deleteDriver = async (id: string) => {
+    if (confirm('Deletar este motoboy?')) {
+        await fetch(`/api/admin/drivers/${id}`, { method: 'DELETE', headers });
+        setDrivers(drivers.filter(d => d.id !== id));
+    }
   };
 
   const [waLoading, setWaLoading] = useState(false);
@@ -164,6 +188,10 @@ export default function AdminPanel() {
           <button onClick={()=>setActiveTab('crm')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='crm'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Users size={20}/> Clientes (CRM)
           </button>
+          
+          <button onClick={()=>setActiveTab('drivers')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='drivers'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <Truck size={20}/> Frota (Motoboys)
+          </button>
 
           <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-8">Sistema</p>
           
@@ -194,6 +222,7 @@ export default function AdminPanel() {
               {activeTab === 'orders' && <><Clock className="text-orange-500"/> Controle de Cozinha</>}
               {activeTab === 'menu' && <><UtensilsCrossed className="text-orange-500"/> Gestão de Cardápio</>}
               {activeTab === 'crm' && <><Users className="text-orange-500"/> Meus Clientes</>}
+              {activeTab === 'drivers' && <><Truck className="text-orange-500"/> Gestão de Frota</>}
               {activeTab === 'settings' && <><Settings className="text-orange-500"/> Aparelho e Configurações</>}
             </h2>
           </div>
@@ -544,6 +573,97 @@ export default function AdminPanel() {
                      </div>
                    )}                   
 
+                </div>
+              )}
+
+              {/* === FROTA / MOTOBOYS === */}
+              {activeTab === 'drivers' && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Cadastro de Novo Motoboy */}
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 h-fit">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="bg-orange-100 p-2 rounded-xl text-orange-600"><Truck size={24}/></div>
+                        <h3 className="font-extrabold text-xl text-slate-800">Novo Piloto</h3>
+                      </div>
+                      <form onSubmit={addDriver} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nome Completo</label>
+                          <input required value={newDriver.name} onChange={e=>setNewDriver({...newDriver, name: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 transition-all font-medium" placeholder="Ex: João da Silva" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Telefone (Login)</label>
+                          <input required value={newDriver.phone} onChange={e=>setNewDriver({...newDriver, phone: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 transition-all font-medium" placeholder="Ex: 6299999999" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Senha de Acesso</label>
+                          <input required type="password" value={newDriver.password} onChange={e=>setNewDriver({...newDriver, password: e.target.value})} className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 transition-all font-medium" placeholder="••••••" />
+                        </div>
+                        <button className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2 mt-4">
+                          <PlusCircle size={20}/> Cadastrar Motoboy
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Lista de Motoboys */}
+                    <div className="lg:col-span-2 space-y-6">
+                      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                        <div className="flex items-center justify-between mb-8">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-orange-100 p-2 rounded-xl text-orange-600"><Activity size={24}/></div>
+                            <h3 className="font-extrabold text-xl text-slate-800">Status da Frota</h3>
+                          </div>
+                          <span className="text-sm font-bold text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full">{drivers.length} Pilotos Registrados</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {drivers.map(d => (
+                            <div key={d.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between group hover:border-orange-200 transition-all">
+                              <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl ${d.isOnline ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'bg-slate-200 text-slate-400'}`}>
+                                  {d.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-black text-slate-800">{d.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${d.isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                                    <p className="text-xs font-bold text-slate-500">{d.isOnline ? 'Disponível na Pista' : 'Offline'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <button onClick={()=>deleteDriver(d.id)} className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                                Demitir
+                              </button>
+                            </div>
+                          ))}
+                          {drivers.length === 0 && (
+                            <div className="col-span-2 py-12 text-center">
+                              <div className="text-slate-200 mb-4 flex justify-center"><Truck size={60}/></div>
+                              <p className="text-slate-400 font-bold">Nenhum motoboy na frota ainda.</p>
+                              <p className="text-slate-300 text-sm">Cadastre o primeiro piloto ao lado.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Info Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gradient-to-br from-orange-500 to-red-600 p-8 rounded-3xl text-white shadow-xl shadow-orange-500/20 relative overflow-hidden">
+                          <Truck className="absolute -right-4 -bottom-4 opacity-10 scale-150 rotate-12" size={120}/>
+                          <h4 className="text-lg font-bold mb-1">Painel do Motoboy</h4>
+                          <p className="text-orange-100 text-sm font-medium mb-6 leading-relaxed">Seus entregadores devem acessar o link abaixo para aceitar corridas em tempo real:</p>
+                          <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 font-mono text-sm break-all">
+                            {window.location.host}/driver
+                          </div>
+                        </div>
+                        <div className="bg-slate-800 p-8 rounded-3xl text-white shadow-xl shadow-slate-900/20">
+                          <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4"><TrendingUp className="text-orange-400"/></div>
+                          <h4 className="text-lg font-bold mb-1">Taxas Dinâmicas</h4>
+                          <p className="text-slate-400 text-sm font-medium">As taxas são calculadas automaticamente pelo Geofencing configurado no robô.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

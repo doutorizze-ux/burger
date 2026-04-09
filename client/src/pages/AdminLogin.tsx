@@ -28,8 +28,8 @@ export const AdminLogin = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
             <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
-                <h1 className="text-3xl font-extrabold text-center text-slate-800 mb-2">ZapFitness <span className="text-primary">Admin</span></h1>
-                <p className="text-slate-500 text-center mb-8">Acesso Global SaaS</p>
+                <h1 className="text-3xl font-extrabold text-center text-slate-800 mb-2">PitDog <span className="text-orange-500">Admin</span></h1>
+                <p className="text-slate-500 text-center mb-8">Painel do Mestre PitDog</p>
 
                 {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-center border border-red-200">{error}</div>}
 

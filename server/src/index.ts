@@ -145,12 +145,28 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
+    
+    // MASTER ADMIN BYPASS/CHECK
+    if (email === 'admin@admin.com' && password === '123456') {
+         const token = jwt.sign({ id: 'master', email: 'admin@admin.com', tenant_id: 'master' }, JWT_SECRET, { expiresIn: '730d' });
+         return res.json({ token, admin: { name: 'Master Admin', email: 'admin@admin.com' }, tenant_id: 'master' });
+    }
+
     const admin = await prisma.gymAdmin.findUnique({ where: { email }, include: { tenant: true } });
     if (!admin || !await bcrypt.compare(password, admin.password)) {
         return res.status(401).json({ error: 'Credenciais inválidas' });
     }
     const token = jwt.sign({ id: admin.id, email: admin.email, tenant_id: admin.tenant_id }, JWT_SECRET, { expiresIn: '730d' });
     res.json({ token, admin, tenant_id: admin.tenant_id });
+});
+
+app.post('/saas/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (email === 'admin@admin.com' && password === '123456') {
+         const token = jwt.sign({ id: 'master', email: 'admin@admin.com', tenant_id: 'master' }, JWT_SECRET, { expiresIn: '730d' });
+         return res.json({ token, admin: { name: 'Master Admin', email: 'admin@admin.com' } });
+    }
+    res.status(401).json({ error: 'Credenciais inválidas' });
 });
 
 app.get('/api/me', authMiddleware, async (req: any, res) => {
@@ -374,6 +390,31 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
         }
         res.json(order);
     } catch (e) { res.status(500).json({ error: 'Error' }); }
+});
+
+// Admin Drivers CRUD
+app.get('/api/admin/drivers', authMiddleware, async (req: any, res) => {
+    try {
+        const drivers = await prisma.deliveryDriver.findMany({ where: { tenant_id: req.user.tenant_id } });
+        res.json(drivers);
+    } catch(e) { res.status(500).json({ error: 'Error' }); }
+});
+
+app.post('/api/admin/drivers', authMiddleware, async (req: any, res) => {
+    try {
+        const { name, phone, password } = req.body;
+        const driver = await prisma.deliveryDriver.create({
+            data: { tenant_id: req.user.tenant_id, name, phone, password }
+        });
+        res.json(driver);
+    } catch(e) { res.status(500).json({ error: 'Error' }); }
+});
+
+app.delete('/api/admin/drivers/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await prisma.deliveryDriver.delete({ where: { id: req.params.id, tenant_id: req.user.tenant_id } });
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: 'Error' }); }
 });
 
 app.post('/api/upload', authMiddleware, upload.single('file'), (req: any, res) => {
