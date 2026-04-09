@@ -50,9 +50,8 @@ export default function AdminPanel() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
             setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        }, (err) => {
-            // If GPS blocked, then use a fallback city or stay null
-            setMapCenter({ lat: -16.6869, lng: -49.2648 });
+        }, () => {
+             setMapCenter({ lat: -16.6869, lng: -49.2648 });
         });
     }
     

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { Truck, MapPin, Navigation, CheckCircle, Package, LogOut, Map as MapIcon } from 'lucide-react';
+import { Truck, MapPin, Navigation, CheckCircle, Package, LogOut } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 
@@ -41,7 +41,7 @@ export default function DriverPanel() {
             setCurrentLocation(loc);
             if (socket && driver) {
                 socket.emit('driver_location', { 
-                    driverId: d.id, 
+                    driverId: driver.id, 
                     ...loc,
                     orderId: myDeliveries[0]?.order_id || null, // report location for active order
                     tenantId: myDeliveries[0]?.order?.tenant_id || null
