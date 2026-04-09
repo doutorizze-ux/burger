@@ -57,6 +57,7 @@ export default function AdminPanel() {
     
     socket = io();
     socket.emit('join', user?.tenant_id);
+    socket.emit('join', 'drivers_global');
 
     socket.on('new_order', (order: any) => {
         setOrders(prev => [order, ...prev]);

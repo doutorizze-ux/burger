@@ -34,16 +34,22 @@ export default function DriverPanel() {
         window.location.href = '/login/driver';
     }
 
-    // Monitor GPS
+    let hasJoined = false;
     const watchId = navigator.geolocation.watchPosition(
         (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setCurrentLocation(loc);
+            
             if (socket && driver) {
+                if (!hasJoined) {
+                    socket.emit('driver_online', { driverId: driver.id, ...loc });
+                    hasJoined = true;
+                }
+
                 socket.emit('driver_location', { 
                     driverId: driver.id, 
                     ...loc,
-                    orderId: myDeliveries[0]?.order_id || null, // report location for active order
+                    orderId: myDeliveries[0]?.order_id || null, 
                     tenantId: myDeliveries[0]?.order?.tenant_id || null
                 });
             }
@@ -62,11 +68,6 @@ export default function DriverPanel() {
     socket = io({ auth: { token } });
     socket.emit('join', `driver_${driverId}`); 
     
-    // Join global pool for new requests
-    if (currentLocation) {
-        socket.emit('driver_online', { driverId, ...currentLocation });
-    }
-
     socket.on('new_delivery_request', (req: any) => {
         setRequests(prev => [req, ...prev]);
         new Audio('/notification.mp3').play().catch(() => {});

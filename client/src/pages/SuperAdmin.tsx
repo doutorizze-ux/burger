@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Activity, Map as MapIcon } from 'lucide-react';
+import io from 'socket.io-client';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 
@@ -34,7 +35,17 @@ export default function SuperAdmin() {
     
     // Refresh drivers location every 10s
     const interval = setInterval(fetchDrivers, 10000);
-    return () => clearInterval(interval);
+
+    const socket = io();
+    socket.emit('join', 'drivers_global');
+    socket.on('delivery_update_location', ({ lat, lng, driverId }: any) => {
+        setDrivers(prev => prev.map(d => d.id === driverId ? { ...d, latitude: lat, longitude: lng, isOnline: true } : d));
+    });
+
+    return () => {
+        clearInterval(interval);
+        socket.disconnect();
+    };
   }, []);
 
   const fetchStats = () => {
