@@ -35,6 +35,17 @@ export default function DriverPanel() {
     }
 
     let hasJoined = false;
+    
+    // Initial Ping
+    if (navigator.geolocation && socket && driver) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setCurrentLocation(loc);
+            socket.emit('driver_online', { driverId: driver.id, ...loc });
+            hasJoined = true;
+        });
+    }
+
     const watchId = navigator.geolocation.watchPosition(
         (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };

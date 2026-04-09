@@ -55,7 +55,7 @@ export default function SuperAdmin() {
   };
 
   const fetchDrivers = () => {
-    fetch('/api/superadmin/drivers', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
+    fetch('/api/drivers/online', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
       .then(r => r.json())
       .then(setDrivers);
   };

@@ -88,22 +88,42 @@ export const io = new Server(server, {
 io.on('connection', (socket) => {
     socket.on('join', (tenantId) => socket.join(tenantId));
     socket.on('driver_online', async ({ driverId, lat, lng }) => {
-        socket.join(`drivers_global`);
-        await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: true, latitude: lat, longitude: lng } });
+        try {
+            socket.join(`drivers_global`);
+            const driver = await prisma.deliveryDriver.update({ 
+                where: { id: driverId }, 
+                data: { isOnline: true, latitude: lat, longitude: lng } 
+            });
+            io.to(`drivers_global`).emit('delivery_update_location', { lat, lng, driverId, driver });
+        } catch (e) {}
     });
     socket.on('driver_offline', async ({ driverId }) => {
         await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: false } });
         socket.leave(`drivers_global`);
     });
     socket.on('driver_location', async ({ driverId, lat, lng, orderId, tenantId }) => {
-        await prisma.deliveryDriver.update({ where: { id: driverId }, data: { latitude: lat, longitude: lng } });
-        if (orderId) {
-             await prisma.deliveryTracking.create({ data: { tenant_id: tenantId, driver_id: driverId, order_id: orderId, latitude: lat, longitude: lng } });
-        }
-        io.to(`tracking_${orderId}`).emit('delivery_update_location', { lat, lng, driverId });
-        io.to(`drivers_global`).emit('delivery_update_location', { lat, lng, driverId });
-        if (tenantId) {
-             io.to(tenantId).emit('delivery_update_location', { lat, lng, driverId });
+        try {
+            await prisma.deliveryDriver.update({ 
+                where: { id: driverId }, 
+                data: { latitude: lat, longitude: lng, isOnline: true } 
+            });
+            
+            const update = { lat, lng, driverId, orderId, tenantId };
+            
+            // Broadcast to global rooms
+            io.to(`drivers_global`).emit('delivery_update_location', update);
+            
+            // Broadcast to specific order tracking
+            if (orderId) {
+                io.to(`tracking_${orderId}`).emit('delivery_update_location', update);
+            }
+            
+            // Broadcast to store panel
+            if (tenantId) {
+                io.to(tenantId).emit('delivery_update_location', update);
+            }
+        } catch (err) {
+            console.error('Error updating driver location:', err);
         }
     });
     socket.on('join_tracking', (orderId) => socket.join(`tracking_${orderId}`));
@@ -491,6 +511,16 @@ app.get('/api/driver/deliveries/:driverId', async (req: any, res) => {
         });
         res.json(deliveries);
     } catch(e) { res.status(500).json({ error: 'Erro ao buscar entregas' }); }
+});
+
+app.get('/api/drivers/online', authMiddleware, async (req: any, res) => {
+    try {
+        const drivers = await prisma.deliveryDriver.findMany({
+            where: { isOnline: true },
+            select: { id: true, name: true, latitude: true, longitude: true, isOnline: true }
+        });
+        res.json(drivers);
+    } catch(e) { res.status(500).json([]); }
 });
 
 app.get('/api/driver/requests', authMiddleware, async (req: any, res) => {

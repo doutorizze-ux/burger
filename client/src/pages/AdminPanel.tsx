@@ -75,11 +75,26 @@ export default function AdminPanel() {
     return () => { socket.disconnect(); };
   }, [user]);
 
+  const fetchDrivers = () => {
+    fetch('/api/drivers/online', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
+      .then(r => r.json())
+      .then(setDrivers);
+  };
+
   const fetchData = () => {
     fetch('/api/orders', {headers}).then(r=>r.json()).then(setOrders);
     fetch('/api/categories', {headers}).then(r=>r.json()).then(setCategories);
     fetch('/api/products', {headers}).then(r=>r.json()).then(setProducts);
     fetch('/api/chats', {headers}).then(r=>r.json()).then(setCustomers);
+    
+    // Initial drivers load
+    fetch('/api/drivers/online', {headers}).then(r=>r.json()).then(data => {
+        const locations: any = {};
+        data.filter((d:any) => d.latitude).forEach((d:any) => {
+            locations[d.id] = { lat: d.latitude, lng: d.longitude, name: d.name };
+        });
+        setActiveDriversLocations(locations);
+    });
   };
 
   const loadChat = async (customer: any) => {
