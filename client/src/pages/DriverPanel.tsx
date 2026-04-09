@@ -36,10 +36,25 @@ export default function DriverPanel() {
     } else {
         window.location.href = '/login/driver';
     }
+  }, []);
+
+  useEffect(() => {
+    if (!driver || !isOnline) return;
 
     let hasJoined = false;
     
-    // Initial Ping & Monitor
+    // Force initial ping
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setCurrentLocation(loc);
+            if (socket) {
+                socket.emit('driver_online', { driverId: driver.id, ...loc });
+                hasJoined = true;
+            }
+        });
+    }
+
     const watchId = navigator.geolocation.watchPosition(
         (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -55,7 +70,7 @@ export default function DriverPanel() {
                     driverId: driver.id, 
                     ...loc,
                     orderId: myDeliveries[0]?.order_id || null, 
-                    tenantId: myDeliveries[0]?.order?.tenant_id || null
+                    tenant_id: myDeliveries[0]?.order?.tenant_id || null
                 });
             }
         },
@@ -65,9 +80,8 @@ export default function DriverPanel() {
 
     return () => {
         navigator.geolocation.clearWatch(watchId);
-        if (socket) socket.disconnect();
     };
-  }, [isOnline]);
+  }, [driver, isOnline, myDeliveries]);
 
   const initSocket = (driverId: string, token: string | null) => {
     socket = io({ auth: { token } });
