@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Truck, MapPin, Navigation, CheckCircle, Package, LogOut, Bell, Zap, Clock, ShieldCheck } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck } from 'lucide-react';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 
 let socket: any;
@@ -60,7 +60,7 @@ export default function DriverPanel() {
             }
         },
         (err) => console.error(err),
-        { enableHighAccuracy: true, distanceFilter: 10 }
+        { enableHighAccuracy: true }
     );
 
     return () => {
