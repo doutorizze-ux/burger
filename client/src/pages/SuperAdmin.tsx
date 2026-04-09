@@ -12,6 +12,7 @@ export default function SuperAdmin() {
   const [stats, setStats] = useState<any>(null);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [newDriver, setNewDriver] = useState({ name: '', phone: '', password: '' });
+  const [mapCenter, setMapCenter] = useState({ lat: -16.6869, lng: -49.2648 });
   
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -21,6 +22,12 @@ export default function SuperAdmin() {
   useEffect(() => {
     fetchStats();
     fetchDrivers();
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        });
+    }
     
     // Refresh drivers location every 10s
     const interval = setInterval(fetchDrivers, 10000);
@@ -108,7 +115,7 @@ export default function SuperAdmin() {
               {isLoaded ? (
                 <GoogleMap
                    mapContainerStyle={mapContainerStyle}
-                   center={onlineDrivers[0] ? { lat: onlineDrivers[0].latitude, lng: onlineDrivers[0].longitude } : { lat: -16.6869, lng: -49.2648 }}
+                   center={onlineDrivers[0] ? { lat: onlineDrivers[0].latitude, lng: onlineDrivers[0].longitude } : mapCenter}
                    zoom={12}
                 >
                    {onlineDrivers.map(d => (

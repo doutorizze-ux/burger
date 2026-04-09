@@ -42,6 +42,8 @@ model Tenant {
   is_free           Boolean @default(false)
 
   paymentHistory    PaymentHistory[]
+  latitude         Float?
+  longitude        Float?
   created_at       DateTime @default(now())
   
   admins           GymAdmin[]

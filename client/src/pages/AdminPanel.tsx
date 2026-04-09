@@ -45,9 +45,17 @@ export default function AdminPanel() {
   });
 
   const [activeDriversLocations, setActiveDriversLocations] = useState<any>({});
+  const [mapCenter, setMapCenter] = useState({ lat: -16.6869, lng: -49.2648 });
 
   useEffect(() => {
     fetchData();
+    
+    // Auto-center user city
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        });
+    }
     
     socket = io();
     socket.emit('join', user?.tenant_id);
@@ -484,7 +492,7 @@ export default function AdminPanel() {
                          {isLoaded ? (
                             <GoogleMap
                                mapContainerStyle={mapContainerStyle}
-                               center={Object.values(activeDriversLocations)[0] as any || { lat: -16.6869, lng: -49.2648 }}
+                               center={Object.values(activeDriversLocations)[0] as any || mapCenter}
                                zoom={13}
                                options={{
                                    zoomControl: false,
