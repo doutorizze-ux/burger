@@ -100,7 +100,8 @@ io.on('connection', (socket) => {
         if (orderId) {
              await prisma.deliveryTracking.create({ data: { tenant_id: tenantId, driver_id: driverId, order_id: orderId, latitude: lat, longitude: lng } });
         }
-        io.to(`tracking_${orderId}`).emit('delivery_update_location', { lat, lng });
+        io.to(`tracking_${orderId}`).emit('delivery_update_location', { lat, lng, driverId });
+        io.to(tenantId).emit('delivery_update_location', { lat, lng, driverId });
     });
     socket.on('join_tracking', (orderId) => socket.join(`tracking_${orderId}`));
 });
