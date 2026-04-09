@@ -5,6 +5,7 @@ import { QrCode, UtensilsCrossed, LayoutDashboard, Settings, LogOut, Clock, Truc
 import QRCode from 'react-qr-code';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { uberMapStyle } from '../mapStyles';
 
 let socket: any;
 
@@ -495,6 +496,7 @@ export default function AdminPanel() {
                                center={Object.values(activeDriversLocations)[0] as any || mapCenter}
                                zoom={13}
                                options={{
+                                   styles: uberMapStyle,
                                    zoomControl: false,
                                    streetViewControl: false,
                                    mapTypeControl: false,

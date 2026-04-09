@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { uberMapStyle } from '../mapStyles';
 
 const mapContainerStyle = {
   width: '100%',
@@ -54,6 +55,7 @@ export default function TrackingPage() {
                     center={driverLocation}
                     zoom={15}
                     options={{
+                        styles: uberMapStyle,
                         zoomControl: false,
                         streetViewControl: false,
                         mapTypeControl: false,

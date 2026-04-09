@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Activity, Map as MapIcon } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { uberMapStyle } from '../mapStyles';
 
 const mapContainerStyle = {
   width: '100%',
@@ -117,6 +118,7 @@ export default function SuperAdmin() {
                    mapContainerStyle={mapContainerStyle}
                    center={onlineDrivers[0] ? { lat: onlineDrivers[0].latitude, lng: onlineDrivers[0].longitude } : mapCenter}
                    zoom={12}
+                   options={{ styles: uberMapStyle }}
                 >
                    {onlineDrivers.map(d => (
                      <Marker 
