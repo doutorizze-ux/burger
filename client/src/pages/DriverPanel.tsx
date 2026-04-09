@@ -307,8 +307,15 @@ export default function DriverPanel() {
                               <p className="font-bold text-sm">Procurando pedidos ao seu redor...</p>
                           </div>
                       )}
-                      {requests.map(req => (
-                          <div key={req.id} className="bg-indigo-600 rounded-[36px] p-6 shadow-2xl border border-white/10 animate-in slide-in-from-bottom-5 duration-500">
+                      <AnimatePresence>
+                        {requests.map(req => (
+                            <motion.div 
+                              key={req.id} 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -100 }}
+                              className="bg-indigo-600 rounded-[36px] p-6 shadow-2xl border border-white/10"
+                            >
                               <div className="flex justify-between items-start mb-6">
                                   <div className="flex items-center gap-3">
                                       <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -336,8 +343,9 @@ export default function DriverPanel() {
                               >
                                   PEGAR PEDIDO <Zap size={20} fill="currentColor"/>
                               </button>
-                          </div>
-                      ))}
+                            </motion.div>
+                        ))}
+                      </AnimatePresence>
                   </div>
               )}
 
@@ -351,8 +359,15 @@ export default function DriverPanel() {
                               <p className="font-bold text-sm">Nenhuma entrega em curso.</p>
                           </div>
                       )}
-                      {activeDeliveries.map(delivery => (
-                          <div key={delivery.id} className="bg-slate-800/80 backdrop-blur-md rounded-[36px] p-6 border border-white/10 shadow-2xl">
+                      <AnimatePresence>
+                        {activeDeliveries.map(delivery => (
+                            <motion.div 
+                              key={delivery.id} 
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              className="bg-slate-800/80 backdrop-blur-md rounded-[36px] p-6 border border-white/10 shadow-2xl"
+                            >
                               <div className="flex justify-between items-center mb-6">
                                   <span className="px-3 py-1 bg-green-500/10 text-green-400 rounded-lg text-[10px] font-black uppercase">Entrega Iniciada</span>
                                   <span className="text-xs font-bold text-gray-500">#{delivery.order.id.slice(-4)}</span>
@@ -385,8 +400,9 @@ export default function DriverPanel() {
                                       ENTREGUE
                                   </button>
                               </div>
-                          </div>
-                      ))}
+                            </motion.div>
+                        ))}
+                      </AnimatePresence>
                   </div>
               )}
           </div>
