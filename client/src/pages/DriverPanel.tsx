@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, DirectionsService, DirectionsRenderer, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
@@ -20,6 +20,7 @@ export default function DriverPanel() {
   const [driver, setDriver] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [myDeliveries, setMyDeliveries] = useState<any[]>([]);
+  const activeDeliveries = myDeliveries.filter(d => d.order.status !== 'DELIVERED');
   const [activeTab, setActiveTab] = useState<'requests' | 'active'>('requests');
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isOnline, setIsOnline] = useState(true);
@@ -188,7 +189,6 @@ export default function DriverPanel() {
 
   if (!driver) return null;
 
-  const activeDeliveries = myDeliveries.filter(d => d.order.status !== 'DELIVERED');
 
   return (
     <div className="fixed inset-0 bg-[#050505] text-white font-sans overflow-hidden flex flex-col">
