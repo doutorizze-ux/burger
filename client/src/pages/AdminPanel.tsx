@@ -94,8 +94,6 @@ export default function AdminPanel() {
     setNewProd({ name: '', price: '', category_id: '', description: '', extras: [] });
   };
 
-  };
-
   const [waLoading, setWaLoading] = useState(false);
 
   const connectWA = async () => {
