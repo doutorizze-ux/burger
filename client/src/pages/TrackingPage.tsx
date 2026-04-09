@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
 
 export default function TrackingPage() {
   const { orderId } = useParams();
   const [order, setOrder] = useState<any>(null);
   const [driverLocation, setDriverLocation] = useState<any>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: (import.meta as any).env.VITE_GOOGLE_MAPS_KEY || ""
+  });
 
   useEffect(() => {
      fetch(`/api/tracking/${orderId}`)
@@ -36,26 +47,32 @@ export default function TrackingPage() {
            <p className="text-sm">Pedido #{order.id.slice(-4)}</p>
         </header>
 
-        {/* Fake Map Box to simulate map without API Key overhead for this demo */}
         <div className="flex-1 bg-slate-300 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-            
-            {driverLocation ? (
-                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                    <div className="animate-bounce bg-white p-2 rounded-full shadow-xl">
-                       <span className="text-4xl">🛵</span>
-                    </div>
-                    <div className="bg-slate-800 text-white text-xs font-bold px-3 py-1 rounded-full mt-2 shadow-lg">
-                       MOTOBOY A CAMINHO
-                    </div>
-                    <p className="mt-2 text-slate-500 font-bold text-[10px]">
-                       (GPS: {driverLocation.lat.toFixed(4)}, {driverLocation.lng.toFixed(4)})
-                    </p>
-                 </div>
+            {isLoaded && driverLocation ? (
+                 <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={driverLocation}
+                    zoom={15}
+                    options={{
+                        zoomControl: false,
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: false,
+                    }}
+                 >
+                    <Marker 
+                        position={driverLocation} 
+                        icon={{
+                            url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+                            scaledSize: new window.google.maps.Size(40, 40)
+                        }}
+                    />
+                 </GoogleMap>
             ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                   <p className="bg-white/80 p-4 rounded-xl font-bold translate-y-10 text-slate-500">
-                      ⏱️ Aguardando Motoboy compartilhar rotas...
+                <div className="absolute inset-0 flex items-center justify-center flex-col gap-4">
+                   <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full"></div>
+                   <p className="bg-white/80 p-4 rounded-xl font-bold text-slate-500">
+                      ⏱️ {isLoaded ? 'Aguardando localização do motoboy...' : 'Carregando Mapa...'}
                    </p>
                 </div>
             )}
@@ -67,9 +84,15 @@ export default function TrackingPage() {
            
            <div className="mt-4 flex flex-col gap-3">
                <div className="flex bg-slate-50 p-4 rounded-xl border border-slate-100 items-center justify-between">
-                   <div className="font-bold text-slate-500">Status</div>
-                   <div className={`font-black ${order.status === 'OUT_FOR_DELIVERY' ? 'text-blue-500' : 'text-orange-500'}`}>
-                      {order.status === 'OUT_FOR_DELIVERY' ? 'SAIU PARA ENTREGA' : 'PREPARANDO...'}
+                   <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
+                       <p className={`font-black ${order.status === 'OUT_FOR_DELIVERY' ? 'text-blue-500' : 'text-orange-500'}`}>
+                          {order.status === 'OUT_FOR_DELIVERY' ? 'SAIU PARA ENTREGA' : 'PREPARANDO...'}
+                       </p>
+                   </div>
+                   <div className="text-right">
+                       <p className="text-[10px] font-bold text-slate-400 uppercase">Loja</p>
+                       <p className="font-bold text-slate-700">{order.tenant?.name}</p>
                    </div>
                </div>
                

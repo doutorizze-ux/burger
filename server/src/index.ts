@@ -87,15 +87,15 @@ export const io = new Server(server, {
 
 io.on('connection', (socket) => {
     socket.on('join', (tenantId) => socket.join(tenantId));
-    socket.on('driver_online', async ({ tenantId, driverId, lat, lng }) => {
-        socket.join(`driver_${tenantId}`);
-        socket.join(`driver_${tenantId}_${driverId}`);
+    socket.on('driver_online', async ({ driverId, lat, lng }) => {
+        socket.join(`drivers_global`);
         await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: true, latitude: lat, longitude: lng } });
     });
     socket.on('driver_offline', async ({ driverId }) => {
         await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: false } });
+        socket.leave(`drivers_global`);
     });
-    socket.on('driver_location', async ({ tenantId, driverId, lat, lng, orderId }) => {
+    socket.on('driver_location', async ({ driverId, lat, lng, orderId, tenantId }) => {
         await prisma.deliveryDriver.update({ where: { id: driverId }, data: { latitude: lat, longitude: lng } });
         if (orderId) {
              await prisma.deliveryTracking.create({ data: { tenant_id: tenantId, driver_id: driverId, order_id: orderId, latitude: lat, longitude: lng } });
@@ -110,11 +110,11 @@ eventBus.on(EVENTS.NEW_MESSAGE, (msg) => {
 });
 
 eventBus.on(EVENTS.NEW_DELIVERY_REQUEST, ({ tenantId, request }) => {
-    io.to(`driver_${tenantId}`).emit('new_delivery_request', request);
+    io.to(`drivers_global`).emit('new_delivery_request', request);
 });
 
 eventBus.on(EVENTS.DELIVERY_EXPIRED, ({ tenantId, requestId }) => {
-    io.to(`driver_${tenantId}`).emit('delivery_expired', { requestId });
+    io.to(`drivers_global`).emit('delivery_expired', { requestId });
 });
 
 // START: ROUTES
@@ -400,21 +400,28 @@ app.get('/api/admin/drivers', authMiddleware, async (req: any, res) => {
     } catch(e) { res.status(500).json({ error: 'Error' }); }
 });
 
-app.post('/api/admin/drivers', authMiddleware, async (req: any, res) => {
+// SUPERADMIN Drivers CRUD
+app.post('/api/superadmin/drivers', authMiddleware, async (req: any, res) => {
+    if (req.user.email !== 'admin@admin.com') return res.status(403).json({ error: 'Denied' });
     try {
         const { name, phone, password } = req.body;
         const driver = await prisma.deliveryDriver.create({
-            data: { tenant_id: req.user.tenant_id, name, phone, password }
+            data: { name, phone, password }
         });
         res.json(driver);
     } catch(e) { res.status(500).json({ error: 'Error' }); }
 });
 
-app.delete('/api/admin/drivers/:id', authMiddleware, async (req: any, res) => {
-    try {
-        await prisma.deliveryDriver.delete({ where: { id: req.params.id, tenant_id: req.user.tenant_id } });
-        res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: 'Error' }); }
+app.get('/api/superadmin/drivers', authMiddleware, async (req: any, res) => {
+    if (req.user.email !== 'admin@admin.com') return res.status(403).json({ error: 'Denied' });
+    const drivers = await prisma.deliveryDriver.findMany();
+    res.json(drivers);
+});
+
+app.delete('/api/superadmin/drivers/:id', authMiddleware, async (req: any, res) => {
+    if (req.user.email !== 'admin@admin.com') return res.status(403).json({ error: 'Denied' });
+    await prisma.deliveryDriver.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
 });
 
 app.post('/api/upload', authMiddleware, upload.single('file'), (req: any, res) => {
@@ -464,7 +471,7 @@ app.post('/api/driver/login', async (req: any, res) => {
         const { phone, password } = req.body;
         const driver = await prisma.deliveryDriver.findUnique({ where: { phone } });
         if (!driver || driver.password !== password) return res.status(401).json({ error: 'Credenciais inválidas' });
-        const token = jwt.sign({ driver_id: driver.id, tenant_id: driver.tenant_id, type: 'DRIVER' }, JWT_SECRET!);
+        const token = jwt.sign({ driver_id: driver.id, type: 'DRIVER' }, JWT_SECRET!);
         res.json({ token, driver });
     } catch(e) { res.status(500).json({ error: 'Erro no login' }); }
 });
@@ -474,13 +481,12 @@ app.get('/api/driver/requests', authMiddleware, async (req: any, res) => {
     try {
         const requests = await prisma.deliveryRequest.findMany({
              where: { 
-                 tenant_id: req.user.tenant_id,
                  OR: [
                      { status: 'PENDING' },
                      { status: 'ACCEPTED', driver_id: req.user.driver_id }
                  ]
              },
-             include: { order: { include: { customer: true } } }
+             include: { order: { include: { customer: true, tenant: true } } }
         });
         res.json(requests);
     } catch(e) { res.status(500).json({ error: 'Erro' }); }

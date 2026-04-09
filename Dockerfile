@@ -5,9 +5,11 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
 COPY client/ .
-# Define a URL da API como relativa para funcionar no mesmo domínio
+# Define as variáveis de ambiente necessárias no Build do Vite
 ARG VITE_API_URL=/
+ARG VITE_GOOGLE_MAPS_KEY
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_GOOGLE_MAPS_KEY=${VITE_GOOGLE_MAPS_KEY}
 RUN npm run build
 
 # --- Stage 2: Serve ---

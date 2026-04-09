@@ -51,7 +51,6 @@ model Tenant {
   orders           Order[]
   leads            Lead[]
   chatMessages     ChatMessage[]
-  deliveryDrivers  DeliveryDriver[]
   deliveryRequests DeliveryRequest[]
   deliveryTrackings DeliveryTracking[]
 }
@@ -250,8 +249,6 @@ model NotificationSettings {
 
 model DeliveryDriver {
   id          String   @id @default(uuid())
-  tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
   name        String
   phone       String   @unique
   password    String 

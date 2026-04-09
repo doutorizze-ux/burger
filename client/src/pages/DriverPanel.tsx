@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
 export default function DriverPanel() {
@@ -21,7 +21,7 @@ export default function DriverPanel() {
       localStorage.setItem('driver_token', data.token);
       setDriver(data.driver);
       loadRequests(data.token);
-      initSocket(data.driver.tenant_id, data.driver.id);
+      initSocket(data.driver.id);
     } else {
       alert('Login Invalido');
     }
@@ -35,7 +35,7 @@ export default function DriverPanel() {
     }
   };
 
-  const initSocket = (tenantId: string, driverId: string) => {
+  const initSocket = (driverId: string) => {
     const newSocket = io();
     setSocket(newSocket);
     newSocket.on('new_delivery_request', (req) => {
@@ -57,7 +57,7 @@ export default function DriverPanel() {
              const lat = pos.coords.latitude;
              const lng = pos.coords.longitude;
              if (isOnline) {
-                 newSocket.emit('driver_location', { tenantId, driverId, lat, lng });
+                 newSocket.emit('driver_location', { driverId, lat, lng });
              }
          }, console.error, { enableHighAccuracy: true });
     }
@@ -69,7 +69,7 @@ export default function DriverPanel() {
     setIsOnline(nextState);
     if (nextState) {
        navigator.geolocation.getCurrentPosition((pos) => {
-           socket.emit('driver_online', { tenantId: driver.tenant_id, driverId: driver.id, lat: pos.coords.latitude, lng: pos.coords.longitude });
+           socket.emit('driver_online', { driverId: driver.id, lat: pos.coords.latitude, lng: pos.coords.longitude });
        });
     } else {
        socket.emit('driver_offline', { driverId: driver.id });
@@ -144,6 +144,12 @@ export default function DriverPanel() {
                                <span className="bg-orange-600 px-3 py-1 rounded-md text-xs font-bold animate-pulse text-white">NOVA</span>
                            )}
                        </div>
+                       
+                       <div className="bg-zinc-700/50 p-2 rounded-lg mb-2">
+                           <p className="text-[10px] uppercase font-bold text-zinc-400">Restaurante:</p>
+                           <p className="text-sm font-bold text-orange-200">🍔 {req.order?.tenant?.name || 'PitDog Desconhecido'}</p>
+                       </div>
+
                        <div className="bg-zinc-900 p-3 rounded-md">
                           <p className="text-sm text-zinc-400">Destino:</p>
                           <p className="font-medium text-zinc-200">{req.order?.delivery_address || 'Endereço não informado'}</p>
