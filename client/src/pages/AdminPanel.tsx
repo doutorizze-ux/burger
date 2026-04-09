@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import io from 'socket.io-client';
-import { QrCode, UtensilsCrossed, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Menu, Bell, Search, PlusCircle, CheckCircle2, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { QrCode, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Bell, PlusCircle, CheckCircle2, Map as MapIcon } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
@@ -113,10 +113,7 @@ export default function AdminPanel() {
     fetchData();
   };
 
-  const [waLoading, setWaLoading] = useState(false);
-
   const connectWA = async () => {
-    setWaLoading(true);
     setWaQr('');
     try {
       await fetch('/api/whatsapp/connect', { method: 'POST', headers });
@@ -132,7 +129,6 @@ export default function AdminPanel() {
       }, 3000);
       setTimeout(() => clearInterval(pollQR), 60000);
     } catch(e) {}
-    setWaLoading(false);
   };
 
   const logoutWA = async () => {
