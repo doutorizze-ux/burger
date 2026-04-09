@@ -8,5 +8,10 @@ coverage
 .idea
 *.log
 *.db
-server/prisma/dev.db
 *.db-journal
+server/data/
+server/sessions/
+server/uploads/
+client/dist/
+.antigravity/
+scratch/

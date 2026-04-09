@@ -1,24 +1,24 @@
 version: '3.8'
 
 services:
-  zapfitness:
+  pitdog:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     volumes:
-      - zapfitness_data:/app/server/database.sqlite
-      - zapfitness_sessions:/app/server/sessions
-      - zapfitness_uploads:/app/server/uploads
+      - pitdog_data:/app/server/data
+      - pitdog_sessions:/app/server/sessions
+      - pitdog_uploads:/app/server/uploads
     environment:
-      - DATABASE_URL=file:/app/server/database.sqlite
+      - DATABASE_URL=file:/app/server/data/database.sqlite
       - TZ=America/Sao_Paulo
       - PORT=3000
       - ASAAS_ENV=sandbox
-      - JWT_SECRET=zapfitness_secret_key_123
+      - JWT_SECRET=pitdog_secret_key_123
 
 volumes:
-  zapfitness_data:
-  zapfitness_sessions:
-  zapfitness_uploads:
+  pitdog_data:
+  pitdog_sessions:
+  pitdog_uploads:

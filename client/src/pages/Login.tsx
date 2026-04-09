@@ -21,7 +21,11 @@ export default function Login() {
     const data = await res.json();
     if(data.token) {
       localStorage.setItem('token', data.token);
-      window.location.href = '/admin';
+      if (data.tenant_id === 'master') {
+          window.location.href = '/superadmin';
+      } else {
+          window.location.href = '/admin';
+      }
     } else {
       alert(data.error);
     }

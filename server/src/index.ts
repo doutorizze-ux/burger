@@ -67,7 +67,7 @@ const upload = multer({
 });
 
 app.use('/uploads', express.static(uploadsDir));
-const JWT_SECRET = process.env.JWT_SECRET || 'zapfitness_secret_key_123';
+const JWT_SECRET = process.env.JWT_SECRET || 'pitdog_secret_key_123';
 
 const authMiddleware = async (req: any, res: any, next: any) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -172,6 +172,16 @@ app.post('/saas/login', async (req, res) => {
 
 app.get('/api/me', authMiddleware, async (req: any, res) => {
     try {
+        if (req.user.tenant_id === 'master') {
+            return res.json({ 
+                id: 'master', 
+                name: 'PitDog.ai Master', 
+                status: 'ACTIVE',
+                whatsapp_status: 'CONNECTED',
+                is_master: true
+            });
+        }
+
         let tenant = await prisma.tenant.findUnique({
             where: { id: req.user.tenant_id },
             include: { admins: true }
@@ -501,7 +511,9 @@ app.post('/api/driver/accept/:requestId', authMiddleware, async (req: any, res) 
         io.to(req.user.tenant_id).emit('order_out', { orderId: request.order_id });
         
         // WhatsApp notify
-        const trackingUrl = `http://localhost:5173/tracking/${request.order_id}`; // Adjust domain in prod
+        const protocol = req.protocol;
+        const host = req.get('host');
+        const trackingUrl = `${protocol}://${host}/tracking/${request.order_id}`; 
         if (request.order.customer.whatsapp_jid) {
             await sendMessageToJid(req.user.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido saiu para entrega com nosso motoboy! 🛵💨\nAcompanhe ao vivo pelo GPS:\n${trackingUrl}`);
         }
