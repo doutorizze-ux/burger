@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
-import { uberMapStyle } from '../mapStyles';
+import { darkMapStyle } from '../mapStyles';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
 const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation');
@@ -195,18 +196,19 @@ export default function DriverPanel() {
       <audio ref={audioRef} src="/notification.mp3" />
       
       {/* Dynamic Background Map */}
-      <div className={`absolute inset-0 z-0 transition-all duration-1000 ${activeDeliveries.length > 0 && activeTab === 'active' ? 'opacity-100 grayscale-0' : 'opacity-40 grayscale pointer-events-none'}`}>
+      <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${activeDeliveries.length > 0 && activeTab === 'active' ? 'opacity-100' : 'opacity-70'}`}>
         {isLoaded && (
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={currentLocation || defaultCenter}
-                zoom={15}
+                zoom={16}
                 options={{ 
-                    styles: uberMapStyle, 
+                    styles: darkMapStyle, 
                     disableDefaultUI: true,
                     zoomControl: false,
                     streetViewControl: false,
                     mapTypeControl: false,
+                    gestureHandling: 'cooperative'
                 }}
             >
                 {directions && (
