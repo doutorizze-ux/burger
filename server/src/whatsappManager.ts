@@ -184,6 +184,8 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
         const senderName = msg.pushName || "Cliente";
         if (!text) return;
 
+        console.log(`[BOT] Mensagem recebida de ${remoteJid} para tenant ${tenantId}: ${text}`);
+
         const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
         if (!tenant || tenant.status === 'BLOCKED') return;
 
