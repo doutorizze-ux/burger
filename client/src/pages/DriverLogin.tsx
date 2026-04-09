@@ -40,7 +40,7 @@ export default function DriverLogin() {
               <Truck className="text-black" size={48} strokeWidth={3} />
           </div>
           <div className="pt-4">
-              <h1 className="text-4xl font-black tracking-tighter text-white">BITDOG <span className="text-green-500 italic">FLEET</span></h1>
+              <h1 className="text-4xl font-black tracking-tighter text-white">FLUX <span className="text-green-500 italic">DRIVER</span></h1>
               <p className="text-gray-500 font-bold text-sm tracking-widest uppercase mt-1">Sua máquina de fazer dinheiro 🛵</p>
           </div>
       </div>
@@ -85,7 +85,7 @@ export default function DriverLogin() {
           </form>
 
           <div className="flex justify-center flex-col items-center gap-2 opacity-40">
-              <p className="text-[10px] font-black tracking-widest uppercase">Tecnologia Segura BitDog v2.0</p>
+              <p className="text-[10px] font-black tracking-widest uppercase">Tecnologia Flux Driver v2.0</p>
               <div className="flex gap-1">
                   <div className="w-1 h-1 bg-white rounded-full"></div>
                   <div className="w-1 h-1 bg-white rounded-full"></div>

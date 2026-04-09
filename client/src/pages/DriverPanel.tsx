@@ -74,7 +74,7 @@ export default function DriverPanel() {
                 watcherId = await BackgroundGeolocation.addWatcher(
                     {
                         backgroundMessage: "Rastreando sua localização para entregas...",
-                        backgroundTitle: "PitDog Pilot Ativo",
+                        backgroundTitle: "Flux Driver Ativo",
                         requestPermissions: true,
                         stale: false,
                         distanceFilter: 3 
@@ -242,7 +242,7 @@ export default function DriverPanel() {
       <header className="relative z-10 p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <h1 className="text-xl font-black tracking-tighter">BITDOG <span className="text-green-500">PILOT</span></h1>
+            <h1 className="text-xl font-black tracking-tighter">FLUX <span className="text-green-500">DRIVER</span></h1>
         </div>
         <div className="flex items-center gap-4">
             <button 
@@ -315,8 +315,8 @@ export default function DriverPanel() {
                                           <ShieldCheck size={20} className="text-indigo-200"/>
                                       </div>
                                       <div>
-                                          <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">REDE PITDOG</p>
-                                          <h4 className="text-lg font-black text-white">{req.order?.tenant?.name || 'PitDog Store'}</h4>
+                                          <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">REDE FLUX</p>
+                                          <h4 className="text-lg font-black text-white">{req.order?.tenant?.name || 'Flux Store'}</h4>
                                       </div>
                                   </div>
                                   <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-black text-white">R$ 7,50 FIXO</div>
