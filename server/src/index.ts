@@ -414,14 +414,39 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
         const order = await prisma.order.update({
             where: { id: req.params.id, tenant_id: req.user.tenant_id },
             data: { status },
-            include: { customer: true, items: { include: { product: true } } }
+            include: { customer: true, tenant: true }
         });
         
-        const statusMap: any = { PREPARING: 'Sendo Preparado 🫕', DELIVERED: 'Saiu para Entrega 🛵', CONFIRMED: 'Confirmado ✅', CANCELLED: 'Cancelado 🚫' };
+        const statusLabels: any = { PREPARING: 'Preparando 👨‍🍳', DELIVERED: 'Despachado 🛵', CONFIRMED: 'Confirmado ✅', CANCELLED: 'Cancelado 🚫' };
         
-        if (order.customer.whatsapp_jid && statusMap[status]) {
-            await sendMessageToJid(order.tenant_id, order.customer.whatsapp_jid, `Seu pedido nº ${order.id.slice(-6)} mudou de status para: *${statusMap[status]}*`);
+        // Notify Customer
+        if (order.customer.whatsapp_jid && statusLabels[status]) {
+            await sendMessageToJid(order.tenant_id, order.customer.whatsapp_jid, `Seu pedido nº ${order.id.slice(-6)}: *${statusLabels[status]}*`);
         }
+
+        // --- GLOBAL FLEET DISPATCH ---
+        if (status === 'DELIVERED') {
+            // 1. Create Delivery Request for the pool
+            const request = await prisma.deliveryRequest.create({
+                data: {
+                    order_id: order.id,
+                    status: 'PENDING'
+                },
+                include: { order: { include: { tenant: true, customer: true } } }
+            });
+
+            // 2. Notify Global Fleet via Socket
+            io.to('drivers_global').emit('new_delivery_request', request);
+
+            // 3. Notify Online Drivers via WhatsApp (RELIABILITY)
+            const onlineDrivers = await prisma.deliveryDriver.findMany({ where: { isOnline: true } });
+            for (const driver of onlineDrivers) {
+                const driverJid = `${driver.phone}@s.whatsapp.net`;
+                const text = `🛵 *NOVO PEDIDO DISPONÍVEL!* 🚀\n\n🏠 *Loja:* ${order.tenant.name}\n📍 *Entrega:* ${order.address}\n💰 *Geral:* R$ ${order.total.toFixed(2)}\n\n*Abra o painel para aceitar:* ${req.protocol}://${req.get('host')}/driver`;
+                await sendMessageToJid(order.tenant_id, driverJid, text);
+            }
+        }
+
         res.json(order);
     } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
