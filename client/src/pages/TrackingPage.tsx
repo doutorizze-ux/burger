@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 
 const mapContainerStyle = {
@@ -13,6 +13,7 @@ export default function TrackingPage() {
   const { orderId } = useParams();
   const [order, setOrder] = useState<any>(null);
   const [driverLocation, setDriverLocation] = useState<any>(null);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -39,6 +40,27 @@ export default function TrackingPage() {
      return () => { socket.disconnect(); };
   }, [orderId]);
 
+  useEffect(() => {
+    if (!isLoaded || !driverLocation || !order?.delivery_address) {
+        setDirections(null);
+        return;
+    }
+
+    const directionsService = new google.maps.DirectionsService();
+    directionsService.route(
+        {
+            origin: driverLocation,
+            destination: order.delivery_address,
+            travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+                setDirections(result);
+            }
+        }
+    );
+  }, [isLoaded, driverLocation, order]);
+
   if (!order) return <div className="p-10 text-center font-bold">Carregando Rastreamento...</div>;
 
   return (
@@ -62,6 +84,15 @@ export default function TrackingPage() {
                         fullscreenControl: false,
                     }}
                  >
+                    {directions && (
+                         <DirectionsRenderer 
+                             directions={directions} 
+                             options={{
+                                 polylineOptions: { strokeColor: '#f97316', strokeWeight: 5 },
+                                 suppressMarkers: false
+                             }} 
+                         />
+                     )}
                     <Marker 
                         position={driverLocation} 
                         icon={{

@@ -101,14 +101,20 @@ io.on('connection', (socket) => {
         await prisma.deliveryDriver.update({ where: { id: driverId }, data: { isOnline: false } });
         socket.leave(`drivers_global`);
     });
-    socket.on('driver_location', async ({ driverId, lat, lng, orderId, tenantId }) => {
+    socket.on('driver_location', async (data) => {
         try {
-            await prisma.deliveryDriver.update({ 
+            const { driverId, lat, lng } = data;
+            const orderId = data.orderId || data.order_id;
+            const tenantId = data.tenantId || data.tenant_id;
+
+            if (!driverId) return;
+
+            const driver = await prisma.deliveryDriver.update({ 
                 where: { id: driverId }, 
                 data: { latitude: lat, longitude: lng, isOnline: true } 
             });
             
-            const update = { lat, lng, driverId, orderId, tenantId };
+            const update = { lat, lng, driverId, orderId, tenantId, driver };
             
             // Broadcast to global rooms
             io.to(`drivers_global`).emit('delivery_update_location', update);
@@ -116,6 +122,19 @@ io.on('connection', (socket) => {
             // Broadcast to specific order tracking
             if (orderId) {
                 io.to(`tracking_${orderId}`).emit('delivery_update_location', update);
+                
+                // Persist tracking history if we have tenantId and orderId
+                if (tenantId) {
+                    await prisma.deliveryTracking.create({
+                        data: {
+                            tenant_id: tenantId,
+                            driver_id: driverId,
+                            order_id: orderId,
+                            latitude: lat,
+                            longitude: lng
+                        }
+                    }).catch(err => console.error('Error persisting tracking:', err));
+                }
             }
             
             // Broadcast to store panel
@@ -227,7 +246,11 @@ app.get('/api/superadmin/stats', authMiddleware, async (req: any, res) => {
     if (req.user.email === 'admin@admin.com') {
          const tenants = await prisma.tenant.findMany();
          const totalProducts = await prisma.product.count();
-         res.json({ tenants, totalProducts });
+         const activeOrders = await prisma.order.findMany({
+             where: { status: 'OUT_FOR_DELIVERY' },
+             select: { id: true, delivery_address: true, tenant_id: true }
+         });
+         res.json({ tenants, totalProducts, activeOrders });
     } else {
          res.status(403).json({ error: 'Master Access Denied' });
     }
@@ -612,10 +635,38 @@ app.post('/api/driver/finish/:requestId', authMiddleware, async (req: any, res) 
 
 app.get('/api/tracking/:orderId', async (req: any, res) => {
     try {
-        const order = await prisma.order.findUnique({ where: { id: req.params.orderId }, include: { customer: true, deliveryTrackings: { orderBy: { updated_at: 'desc' }, take: 1 } } });
+        const order = await prisma.order.findUnique({ 
+            where: { id: req.params.orderId }, 
+            include: { 
+                customer: true, 
+                tenant: true,
+                deliveryRequest: {
+                    include: {
+                        driver: true
+                    }
+                },
+                deliveryTrackings: { orderBy: { updated_at: 'desc' }, take: 1 } 
+            } 
+        });
         if (!order) return res.status(404).json({ error: 'Não encontrado' });
+        
+        // If no tracking history yet, use the driver's current position from the driver model
+        if (order.deliveryTrackings.length === 0 && order.deliveryRequest?.driver) {
+            const driver = order.deliveryRequest.driver;
+            if (driver.latitude && driver.longitude) {
+                (order as any).deliveryTrackings = [{
+                    latitude: driver.latitude,
+                    longitude: driver.longitude,
+                    updated_at: driver.created_at // fallback
+                }];
+            }
+        }
+
         res.json(order);
-    } catch(e) { res.status(500).json({ error: 'Erro' }); }
+    } catch(e) { 
+        console.error(e);
+        res.status(500).json({ error: 'Erro' }); 
+    }
 });
 
 

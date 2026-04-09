@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck } from 'lucide-react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, DirectionsService, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation');
 
 let socket: any;
 
@@ -20,6 +23,7 @@ export default function DriverPanel() {
   const [activeTab, setActiveTab] = useState<'requests' | 'active'>('requests');
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { isLoaded } = useJsApiLoader({
@@ -42,46 +46,92 @@ export default function DriverPanel() {
     if (!driver || !isOnline) return;
 
     let hasJoined = false;
-    
-    // Force initial ping
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setCurrentLocation(loc);
-            if (socket) {
+    let watcherId: string | null = null;
+    let browserWatchId: number | null = null;
+
+    const emitLocation = (loc: {lat: number, lng: number}) => {
+        setCurrentLocation(loc);
+        if (socket && driver && isOnline) {
+            if (!hasJoined) {
                 socket.emit('driver_online', { driverId: driver.id, ...loc });
                 hasJoined = true;
             }
-        });
-    }
 
-    const watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setCurrentLocation(loc);
-            
-            if (socket && driver && isOnline) {
-                if (!hasJoined) {
-                    socket.emit('driver_online', { driverId: driver.id, ...loc });
-                    hasJoined = true;
-                }
+            socket.emit('driver_location', { 
+                driverId: driver.id, 
+                ...loc,
+                orderId: myDeliveries[0]?.order_id || null, 
+                tenant_id: myDeliveries[0]?.order?.tenant_id || null
+            });
+        }
+    };
 
-                socket.emit('driver_location', { 
-                    driverId: driver.id, 
-                    ...loc,
-                    orderId: myDeliveries[0]?.order_id || null, 
-                    tenant_id: myDeliveries[0]?.order?.tenant_id || null
-                });
+    const startTracking = async () => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                watcherId = await BackgroundGeolocation.addWatcher(
+                    {
+                        backgroundMessage: "Rastreando sua localização para entregas...",
+                        backgroundTitle: "PitDog Pilot Ativo",
+                        requestPermissions: true,
+                        stale: false,
+                        distanceFilter: 3 
+                    },
+                    (location: any) => {
+                        if (location) {
+                            emitLocation({ lat: location.latitude, lng: location.longitude });
+                        }
+                    }
+                );
+            } catch (err) {
+                console.error("Background GPS Error:", err);
             }
-        },
-        (err) => console.error(err),
-        { enableHighAccuracy: true }
-    );
+        } else {
+            // Browser Fallback
+            if (navigator.geolocation) {
+                browserWatchId = navigator.geolocation.watchPosition(
+                    (pos) => emitLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                    (err) => console.error(err),
+                    { enableHighAccuracy: true }
+                );
+            }
+        }
+    };
+
+    startTracking();
 
     return () => {
-        navigator.geolocation.clearWatch(watchId);
+        if (watcherId) {
+            BackgroundGeolocation.removeWatcher({ id: watcherId });
+        }
+        if (browserWatchId !== null) {
+            navigator.geolocation.clearWatch(browserWatchId);
+        }
     };
   }, [driver, isOnline, myDeliveries]);
+
+  useEffect(() => {
+    if (!isLoaded || !currentLocation || activeDeliveries.length === 0) {
+        setDirections(null);
+        return;
+    }
+
+    const delivery = activeDeliveries[0];
+    const directionsService = new google.maps.DirectionsService();
+
+    directionsService.route(
+        {
+            origin: currentLocation,
+            destination: delivery.order.delivery_address,
+            travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+                setDirections(result);
+            }
+        }
+    );
+  }, [isLoaded, currentLocation, activeDeliveries]);
 
   const initSocket = (driverId: string, token: string | null) => {
     socket = io({ auth: { token } });
@@ -144,15 +194,45 @@ export default function DriverPanel() {
     <div className="fixed inset-0 bg-[#050505] text-white font-sans overflow-hidden flex flex-col">
       <audio ref={audioRef} src="/notification.mp3" />
       
-      {/* Dynamic Background Map (Blured or Subtile) */}
-      <div className="absolute inset-0 z-0 opacity-40 grayscale pointer-events-none">
+      {/* Dynamic Background Map */}
+      <div className={`absolute inset-0 z-0 transition-all duration-1000 ${activeDeliveries.length > 0 && activeTab === 'active' ? 'opacity-100 grayscale-0' : 'opacity-40 grayscale pointer-events-none'}`}>
         {isLoaded && (
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={currentLocation || defaultCenter}
-                zoom={14}
-                options={{ styles: uberMapStyle, disableDefaultUI: true }}
-            />
+                zoom={15}
+                options={{ 
+                    styles: uberMapStyle, 
+                    disableDefaultUI: true,
+                    zoomControl: false,
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                }}
+            >
+                {directions && (
+                    <DirectionsRenderer 
+                        directions={directions} 
+                        options={{
+                            polylineOptions: { 
+                                strokeColor: '#4f46e5', 
+                                strokeOpacity: 0.8, 
+                                strokeWeight: 6 
+                            },
+                            suppressMarkers: false 
+                        }} 
+                    />
+                )}
+                
+                {currentLocation && !directions && (
+                    <Marker 
+                        position={currentLocation}
+                        icon={{
+                            url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+                            scaledSize: new window.google.maps.Size(40, 40)
+                        }}
+                    />
+                )}
+            </GoogleMap>
         )}
       </div>
 

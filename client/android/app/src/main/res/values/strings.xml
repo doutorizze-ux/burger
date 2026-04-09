@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PitDog Pilot</string>
+    <string name="title_activity_main">PitDog Pilot</string>
+    <string name="package_name">com.pitdog.driver</string>
+    <string name="custom_url_scheme">com.pitdog.driver</string>
+</resources>

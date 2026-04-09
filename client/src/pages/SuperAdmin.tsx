@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Activity, Map as MapIcon } from 'lucide-react';
 import io from 'socket.io-client';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 
 const mapContainerStyle = {
@@ -38,8 +38,18 @@ export default function SuperAdmin() {
 
     const socket = io();
     socket.emit('join', 'drivers_global');
-    socket.on('delivery_update_location', ({ lat, lng, driverId }: any) => {
-        setDrivers(prev => prev.map(d => d.id === driverId ? { ...d, latitude: lat, longitude: lng, isOnline: true } : d));
+    socket.on('delivery_update_location', (update: any) => {
+        const { lat, lng, driverId, driver, orderId } = update;
+        setDrivers(prev => {
+            const exists = prev.find(d => d.id === driverId);
+            if (exists) {
+                return prev.map(d => d.id === driverId ? { ...d, latitude: lat, longitude: lng, isOnline: true, orderId } : d);
+            }
+            if (driver) {
+                return [...prev, { ...driver, latitude: lat, longitude: lng, isOnline: true, orderId }];
+            }
+            return prev;
+        });
     });
 
     return () => {
@@ -133,17 +143,27 @@ export default function SuperAdmin() {
                    zoom={12}
                    options={{ styles: uberMapStyle }}
                 >
-                   {onlineDrivers.map(d => (
-                     <Marker 
-                       key={d.id} 
-                       position={{ lat: d.latitude, lng: d.longitude }}
-                       label={{ text: d.name, color: 'white', fontWeight: 'bold' }}
-                       icon={{
-                           url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
-                           scaledSize: new window.google.maps.Size(30,30)
-                       }}
-                     />
-                   ))}
+                   {onlineDrivers.map(d => {
+                       const activeOrder = stats.activeOrders?.find((o: any) => o.id === d.orderId);
+                       return (
+                           <div key={d.id}>
+                               <Marker 
+                                 position={{ lat: d.latitude, lng: d.longitude }}
+                                 label={{ text: d.name, color: 'white', fontWeight: 'bold' }}
+                                 icon={{
+                                     url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+                                     scaledSize: new window.google.maps.Size(30,30)
+                                 }}
+                               />
+                               {activeOrder && (
+                                   <GlobalRouteRenderer 
+                                       origin={{ lat: d.latitude, lng: d.longitude }} 
+                                       destination={activeOrder.delivery_address} 
+                                   />
+                               )}
+                           </div>
+                       );
+                   })}
                 </GoogleMap>
               ) : (
                 <p className="font-bold text-slate-400 animate-pulse">Carregando satélite global...</p>
@@ -219,4 +239,35 @@ export default function SuperAdmin() {
       </div>
     </div>
   );
+}
+
+function GlobalRouteRenderer({ origin, destination }: { origin: any, destination: string }) {
+    const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+
+    useEffect(() => {
+        const directionsService = new google.maps.DirectionsService();
+        directionsService.route(
+            {
+                origin,
+                destination,
+                travelMode: google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    setDirections(result);
+                }
+            }
+        );
+    }, [origin, destination]);
+
+    if (!directions) return null;
+    return (
+        <DirectionsRenderer 
+            directions={directions} 
+            options={{
+                polylineOptions: { strokeColor: '#818cf8', strokeWeight: 3, strokeOpacity: 0.5 },
+                suppressMarkers: true
+            }} 
+        />
+    );
 }

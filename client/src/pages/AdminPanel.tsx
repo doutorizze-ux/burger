@@ -4,7 +4,7 @@ import io from 'socket.io-client';
 import { QrCode, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Bell, PlusCircle, CheckCircle2, Map as MapIcon } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
 
 let socket: any;
@@ -68,8 +68,12 @@ export default function AdminPanel() {
     socket.on('qr_code', (qr: string) => setWaQr(qr));
     socket.on('whatsapp_status', (status: string) => setWaStatus(status));
     
-    socket.on('delivery_update_location', ({ lat, lng, driverId }: any) => {
-        setActiveDriversLocations((prev: any) => ({ ...prev, [driverId]: { lat, lng } }));
+    socket.on('delivery_update_location', (update: any) => {
+        const { lat, lng, driverId, driver, orderId } = update;
+        setActiveDriversLocations((prev: any) => ({ 
+            ...prev, 
+            [driverId]: { ...(prev[driverId] || driver || {}), lat, lng, orderId } 
+        }));
     });
 
     return () => { socket.disconnect(); };
@@ -374,9 +378,26 @@ export default function AdminPanel() {
                                zoom={14}
                                options={{ styles: uberMapStyle }}
                             >
-                               {Object.keys(activeDriversLocations).map(id => (
-                                 <Marker key={id} position={activeDriversLocations[id]} icon={{ url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png", scaledSize: new window.google.maps.Size(40,40) }} />
-                               ))}
+                               {Object.keys(activeDriversLocations).map(id => {
+                                   const driverLoc = activeDriversLocations[id];
+                                   const activeOrder = orders.find(o => o.id === driverLoc.orderId);
+                                   
+                                   return (
+                                       <div key={id}>
+                                           <Marker 
+                                             position={driverLoc} 
+                                             label={{ text: driverLoc.name || 'Piloto', color: 'orange', fontWeight: 'bold' }}
+                                             icon={{ url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png", scaledSize: new window.google.maps.Size(40,40) }} 
+                                           />
+                                           {activeOrder && (
+                                               <AdminRouteRenderer 
+                                                   origin={driverLoc} 
+                                                   destination={activeOrder.delivery_address} 
+                                               />
+                                           )}
+                                       </div>
+                                   );
+                               })}
                             </GoogleMap>
                          ) : <div className="h-full flex items-center justify-center font-bold text-slate-300 animate-pulse">Detectando sua cidade...</div>}
                       </div>
@@ -404,4 +425,35 @@ export default function AdminPanel() {
       </div>
     </div>
   );
+}
+
+function AdminRouteRenderer({ origin, destination }: { origin: any, destination: string }) {
+    const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+
+    useEffect(() => {
+        const directionsService = new google.maps.DirectionsService();
+        directionsService.route(
+            {
+                origin,
+                destination,
+                travelMode: google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    setDirections(result);
+                }
+            }
+        );
+    }, [origin, destination]);
+
+    if (!directions) return null;
+    return (
+        <DirectionsRenderer 
+            directions={directions} 
+            options={{
+                polylineOptions: { strokeColor: '#f97316', strokeWeight: 4, strokeOpacity: 0.6 },
+                suppressMarkers: true
+            }} 
+        />
+    );
 }
