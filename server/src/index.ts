@@ -392,14 +392,6 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
     } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
 
-// Admin Drivers CRUD
-app.get('/api/admin/drivers', authMiddleware, async (req: any, res) => {
-    try {
-        const drivers = await prisma.deliveryDriver.findMany({ where: { tenant_id: req.user.tenant_id } });
-        res.json(drivers);
-    } catch(e) { res.status(500).json({ error: 'Error' }); }
-});
-
 // SUPERADMIN Drivers CRUD
 app.post('/api/superadmin/drivers', authMiddleware, async (req: any, res) => {
     if (req.user.email !== 'admin@admin.com') return res.status(403).json({ error: 'Denied' });
