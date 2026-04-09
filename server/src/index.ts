@@ -430,6 +430,7 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
             const request = await prisma.deliveryRequest.create({
                 data: {
                     order_id: order.id,
+                    tenant_id: order.tenant_id,
                     status: 'PENDING'
                 },
                 include: { order: { include: { tenant: true, customer: true } } }
@@ -442,7 +443,7 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
             const onlineDrivers = await prisma.deliveryDriver.findMany({ where: { isOnline: true } });
             for (const driver of onlineDrivers) {
                 const driverJid = `${driver.phone}@s.whatsapp.net`;
-                const text = `🛵 *NOVO PEDIDO DISPONÍVEL!* 🚀\n\n🏠 *Loja:* ${order.tenant.name}\n📍 *Entrega:* ${order.address}\n💰 *Geral:* R$ ${order.total.toFixed(2)}\n\n*Abra o painel para aceitar:* ${req.protocol}://${req.get('host')}/driver`;
+                const text = `🛵 *NOVO PEDIDO DISPONÍVEL!* 🚀\n\n🏠 *Loja:* ${order.tenant.name}\n📍 *Entrega:* ${order.delivery_address || 'Endereço não informado'}\n💰 *Geral:* R$ ${order.total.toFixed(2)}\n\n*Abra o painel para aceitar:* ${req.protocol}://${req.get('host')}/driver`;
                 await sendMessageToJid(order.tenant_id, driverJid, text);
             }
         }
