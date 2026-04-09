@@ -29,7 +29,7 @@ export default function DriverPanel() {
     if (savedDriver) {
         const d = JSON.parse(savedDriver);
         setDriver(d);
-        initSocket(d.id);
+        initSocket(d.id, localStorage.getItem('driverToken'));
     } else {
         window.location.href = '/login/driver';
     }
@@ -58,9 +58,14 @@ export default function DriverPanel() {
     };
   }, []);
 
-  const initSocket = (driverId: string) => {
-    socket = io();
-    socket.emit('join_drivers'); // Join global drivers room
+  const initSocket = (driverId: string, token: string | null) => {
+    socket = io({ auth: { token } });
+    socket.emit('join', `driver_${driverId}`); 
+    
+    // Join global pool for new requests
+    if (currentLocation) {
+        socket.emit('driver_online', { driverId, ...currentLocation });
+    }
 
     socket.on('new_delivery_request', (req: any) => {
         setRequests(prev => [req, ...prev]);
@@ -68,14 +73,18 @@ export default function DriverPanel() {
     });
 
     // Initial fetch
-    fetch(`/api/driver/deliveries/${driverId}`).then(r=>r.json()).then(setMyDeliveries);
+    const headers = { 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` };
+    fetch('/api/driver/requests', { headers }).then(r=>r.json()).then(setRequests);
+    fetch(`/api/driver/deliveries/${driverId}`, { headers }).then(r=>r.json()).then(setMyDeliveries);
   };
 
   const acceptRequest = async (requestId: string) => {
-    const res = await fetch(`/api/delivery/accept`, {
+    const res = await fetch(`/api/driver/accept/${requestId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, driverId: driver.id })
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`,
+          'Content-Type': 'application/json' 
+        }
     });
     if (res.ok) {
         setRequests(prev => prev.filter(r => r.id !== requestId));
@@ -84,11 +93,13 @@ export default function DriverPanel() {
     }
   };
 
-  const completeDelivery = async (orderId: string) => {
-    const res = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'DELIVERED' })
+  const completeDelivery = async (requestId: string) => {
+    const res = await fetch(`/api/driver/finish/${requestId}`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`,
+          'Content-Type': 'application/json' 
+        }
     });
     if (res.ok) {
         fetch(`/api/driver/deliveries/${driver.id}`).then(r=>r.json()).then(setMyDeliveries);
@@ -199,7 +210,7 @@ export default function DriverPanel() {
                            <button onClick={() => openInMaps(delivery.order.address)} className="bg-slate-700 text-white p-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-600 transition-colors shadow-lg">
                               <Navigation size={18}/> NAVEGAR
                            </button>
-                           <button onClick={() => completeDelivery(delivery.order_id)} className="bg-green-600 text-white p-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-green-500 transition-colors shadow-lg shadow-green-500/10">
+                           <button onClick={() => completeDelivery(delivery.id)} className="bg-green-600 text-white p-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-green-500 transition-colors shadow-lg shadow-green-500/10">
                               <CheckCircle size={18}/> CONCLUIR
                            </button>
                         </div>

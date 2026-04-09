@@ -11,6 +11,7 @@ import LandingPage from './pages/LandingPage';
 import SuperAdmin from './pages/SuperAdmin';
 import DriverPanel from './pages/DriverPanel';
 import TrackingPage from './pages/TrackingPage';
+import DriverLogin from './pages/DriverLogin';
 
 export const AuthContext = React.createContext<any>(null);
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="/catalogo/:slug" element={<Catalog />} />
           <Route path="/superadmin" element={user ? <SuperAdmin /> : <Navigate to="/login" />} />
           <Route path="/driver" element={<DriverPanel />} />
+          <Route path="/login/driver" element={<DriverLogin />} />
           <Route path="/tracking/:orderId" element={<TrackingPage />} />
         </Routes>
       </BrowserRouter>

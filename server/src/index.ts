@@ -479,6 +479,17 @@ app.post('/api/driver/login', async (req: any, res) => {
     } catch(e) { res.status(500).json({ error: 'Erro no login' }); }
 });
 
+app.get('/api/driver/deliveries/:driverId', async (req: any, res) => {
+    try {
+        const deliveries = await prisma.deliveryRequest.findMany({
+            where: { driver_id: req.params.driverId },
+            include: { order: { include: { customer: true, tenant: true } } },
+            orderBy: { created_at: 'desc' }
+        });
+        res.json(deliveries);
+    } catch(e) { res.status(500).json({ error: 'Erro ao buscar entregas' }); }
+});
+
 app.get('/api/driver/requests', authMiddleware, async (req: any, res) => {
     if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
     try {
