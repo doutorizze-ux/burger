@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, PlusCircle, Trash2, Activity, Map as MapIcon } from 'lucide-react';
+import { PlusCircle, Trash2, Activity, Map as MapIcon } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 
 const mapContainerStyle = {
