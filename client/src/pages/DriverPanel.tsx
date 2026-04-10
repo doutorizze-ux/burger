@@ -292,20 +292,26 @@ export default function DriverPanel() {
       <main className="relative z-20 flex-1 bg-white/5 backdrop-blur-2xl rounded-t-[48px] border-t border-white/10 flex flex-col overflow-hidden">
           
           {/* Navigation Bar */}
-          <div className="p-6 flex gap-4">
+          <div className="p-6 flex gap-2">
               <button 
                 onClick={() => setActiveTab('requests')} 
-                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-sm transition-all relative ${activeTab === 'requests' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
+                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-[10px] transition-all relative ${activeTab === 'requests' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
               >
-                  <Bell size={18}/> DISPONÍVEIS
+                  <Bell size={16}/> PEDIDOS
                   {requests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white rounded-full text-[10px] flex items-center justify-center border-2 border-black">{requests.length}</span>}
               </button>
               <button 
                 onClick={() => setActiveTab('active')} 
-                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'active' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
+                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-[10px] transition-all ${activeTab === 'active' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
               >
-                  <Navigation size={18}/> EM CURSO
+                  <Navigation size={16}/> ATIVO
                   {activeDeliveries.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white rounded-full text-[10px] flex items-center justify-center border-2 border-black">{activeDeliveries.length}</span>}
+              </button>
+              <button 
+                onClick={() => setActiveTab('wallet')} 
+                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-[10px] transition-all ${activeTab === 'wallet' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
+              >
+                  <Wallet size={16}/> CARTEIRA
               </button>
           </div>
 
@@ -443,7 +449,7 @@ export default function DriverPanel() {
                                       </div>
                                       <div className="max-w-[180px]">
                                           <p className="font-bold text-white text-sm truncate">{t.description}</p>
-                                          <p className="text-[10px] text-slate-500">{new Date(t.created_at).toLocaleDateString('pt-BR')} as {new Date(t.created_at).toLocaleTimeString('pt-BR', {hour: '2d', minute: '2d'})}</p>
+                                          <p className="text-[10px] text-slate-500">{new Date(t.created_at).toLocaleDateString('pt-BR')} as {new Date(t.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</p>
                                       </div>
                                   </div>
                                   <p className="font-black text-green-500">R$ {t.amount.toFixed(2)}</p>
