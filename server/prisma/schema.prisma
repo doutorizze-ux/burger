@@ -55,6 +55,7 @@ model Tenant {
   chatMessages     ChatMessage[]
   deliveryRequests DeliveryRequest[]
   deliveryTrackings DeliveryTracking[]
+  coupons          Coupon[]
 }
 
 model SaasPlan {
@@ -262,7 +263,6 @@ model DeliveryDriver {
   created_at  DateTime @default(now())
 
   requests      DeliveryRequest[]
-  coupons       Coupon[]
   transactions Transaction[]
   trackings   DeliveryTracking[]
 }
@@ -304,4 +304,14 @@ model DeliveryTracking {
   latitude    Float
   longitude   Float
   updated_at  DateTime @updatedAt
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  driver_id   String
+  driver      DeliveryDriver @relation(fields: [driver_id], references: [id])
+  amount      Float
+  type        String   // EARNING, PAYOUT
+  description String?
+  created_at  DateTime @default(now())
 }
