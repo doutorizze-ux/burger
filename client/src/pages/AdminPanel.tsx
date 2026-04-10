@@ -119,7 +119,15 @@ export default function AdminPanel() {
         });
     });
 
-    return () => { socket.disconnect(); };
+        socket.on('driver_offline', ({ driverId }) => {
+            setActiveDriversLocations((prev: any) => {
+                const newLocs = { ...prev };
+                delete newLocs[driverId];
+                return newLocs;
+            });
+        });
+
+        return () => { socket.disconnect(); };
   }, [user]);
 
   const fetchData = () => {
