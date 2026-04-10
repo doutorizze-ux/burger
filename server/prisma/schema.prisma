@@ -28,6 +28,7 @@ model Tenant {
   closing_time      String?
   
   delivery_fee      Float   @default(5.00)
+  commission_rate   Float   @default(5.00)
   min_order_value   Float   @default(0.00)
 
   saas_plan_id     String?
