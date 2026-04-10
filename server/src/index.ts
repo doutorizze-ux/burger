@@ -212,6 +212,17 @@ app.post('/saas/login', async (req, res) => {
     res.status(401).json({ error: 'Credenciais inválidas' });
 });
 
+app.put('/api/tenant', authMiddleware, async (req: any, res) => {
+    try {
+        const { name, logo_url, primary_color } = req.body;
+        const tenant = await prisma.tenant.update({
+            where: { id: req.user.tenant_id },
+            data: { name, logo_url, primary_color }
+        });
+        res.json(tenant);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/me', authMiddleware, async (req: any, res) => {
     try {
         if (req.user.tenant_id === 'master') {

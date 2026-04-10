@@ -229,7 +229,7 @@ export default function DriverPanel() {
                     <Marker 
                         position={currentLocation}
                         icon={{
-                            url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+                            url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png",
                             scaledSize: new window.google.maps.Size(40, 40)
                         }}
                     />

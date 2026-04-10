@@ -103,39 +103,39 @@ export default function SuperAdmin() {
   const onlineDrivers = drivers.filter(d => d.isOnline && d.latitude && d.longitude);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 font-sans p-10">
+    <div className="min-h-screen bg-slate-900 text-slate-300 font-sans p-4 lg:p-10">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-10 border-b border-slate-700 pb-6">
-          <div className="w-12 h-12 bg-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-2xl">👑</div>
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 lg:mb-10 border-b border-slate-700 pb-6 text-center sm:text-left">
+          <div className="w-12 h-12 bg-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-2xl shrink-0">👑</div>
           <div>
-            <h1 className="text-3xl font-black text-white">SaaS Master Node</h1>
-            <p className="text-indigo-400 font-bold">Monitorando Licenças & Frota Uber</p>
+            <h1 className="text-2xl lg:text-3xl font-black text-white">SaaS Master Node</h1>
+            <p className="text-indigo-400 font-bold text-sm lg:text-base">Monitorando Licenças & Frota Uber</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8 lg:mb-12">
           <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
-            <p className="font-bold text-slate-400 mb-2">Lojas Ativas</p>
-            <h2 className="text-4xl font-black text-white">{stats.tenants?.length || 0}</h2>
+            <p className="font-bold text-slate-400 mb-2 text-xs uppercase tracking-widest">Lojas Ativas</p>
+            <h2 className="text-3xl lg:text-4xl font-black text-white">{stats.tenants?.length || 0}</h2>
           </div>
           <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
-            <p className="font-bold text-slate-400 mb-2">Ganhos SaaS</p>
-            <h2 className="text-4xl font-black text-green-400">R$ {((stats.tenants?.length || 0) * 147).toFixed(2)}</h2>
+            <p className="font-bold text-slate-400 mb-2 text-xs uppercase tracking-widest">Ganhos SaaS</p>
+            <h2 className="text-3xl lg:text-4xl font-black text-green-400">R$ {((stats.tenants?.length || 0) * 147).toFixed(2)}</h2>
           </div>
           <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
-            <p className="font-bold text-slate-400 mb-2">Pilotos Online</p>
-            <h2 className="text-4xl font-black text-orange-400">{drivers.filter(d=>d.isOnline).length}</h2>
+            <p className="font-bold text-slate-400 mb-2 text-xs uppercase tracking-widest">Pilotos Online</p>
+            <h2 className="text-3xl lg:text-4xl font-black text-orange-400">{drivers.filter(d=>d.isOnline).length}</h2>
           </div>
           <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
-            <p className="font-bold text-slate-400 mb-2">Total Frota</p>
-            <h2 className="text-4xl font-black text-slate-300">{drivers.length}</h2>
+            <p className="font-bold text-slate-400 mb-2 text-xs uppercase tracking-widest">Total Frota</p>
+            <h2 className="text-3xl lg:text-4xl font-black text-slate-300">{drivers.length}</h2>
           </div>
         </div>
 
         {/* Mapa de Operação Real-time */}
-        <div className="bg-slate-800 p-8 rounded-[40px] border border-slate-700 shadow-2xl mb-12">
-           <h3 className="font-black text-2xl text-white mb-6 flex items-center gap-3"><MapIcon className="text-indigo-400"/> Mapa de Operação Real-time</h3>
-           <div className="h-[400px] bg-slate-700 rounded-3xl flex items-center justify-center overflow-hidden border border-slate-600">
+        <div className="bg-slate-800 p-6 lg:p-8 rounded-[32px] lg:rounded-[40px] border border-slate-700 shadow-2xl mb-8 lg:mb-12">
+           <h3 className="font-black text-xl lg:text-2xl text-white mb-6 flex items-center gap-3"><MapIcon className="text-indigo-400"/> Mapa de Operação Real-time</h3>
+           <div className="h-[300px] lg:h-[400px] bg-slate-700 rounded-3xl flex items-center justify-center overflow-hidden border border-slate-600">
               {isLoaded && (onlineDrivers[0] || mapCenter) ? (
                 <GoogleMap
                    mapContainerStyle={mapContainerStyle}
@@ -151,7 +151,7 @@ export default function SuperAdmin() {
                                  position={{ lat: d.latitude, lng: d.longitude }}
                                  label={{ text: d.name, color: 'white', fontWeight: 'bold' }}
                                  icon={{
-                                     url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+                                     url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png",
                                      scaledSize: new window.google.maps.Size(30,30)
                                  }}
                                />
@@ -203,10 +203,10 @@ export default function SuperAdmin() {
            </div>
         </div>
 
-        <div className="bg-slate-800 rounded-[40px] border border-slate-700 p-10 shadow-xl mb-10">
-          <h2 className="text-2xl font-black text-white mb-8 border-b border-slate-700 pb-6">Lojas (Tenants) do Ecossistema</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+        <div className="bg-slate-800 rounded-[32px] lg:rounded-[40px] border border-slate-700 p-6 lg:p-10 shadow-xl mb-10 overflow-hidden">
+          <h2 className="text-xl lg:text-2xl font-black text-white mb-8 border-b border-slate-700 pb-6 text-center lg:text-left">Lojas (Tenants) do Ecossistema</h2>
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full text-left min-w-[600px]">
               <thead>
                 <tr className="text-slate-500 uppercase text-xs font-bold tracking-widest">
                   <th className="pb-6">Loja</th>
