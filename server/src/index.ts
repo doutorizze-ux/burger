@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { eventBus, EVENTS } from './events.js';
+import { sendPushNotification } from './firebaseAdmin.js';
 import multer from 'multer';
 import cors from 'cors';
 
@@ -223,6 +224,18 @@ app.put('/api/tenant', authMiddleware, async (req: any, res) => {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/fcm-token', authMiddleware, async (req: any, res) => {
+    try {
+        const { token } = req.body;
+        if (req.user.type === 'DRIVER') {
+            await prisma.deliveryDriver.update({ where: { id: req.user.driver_id }, data: { fcm_token: token } });
+        } else if (req.user.id !== 'master') {
+            await prisma.gymAdmin.update({ where: { id: req.user.id }, data: { fcm_token: token } });
+        }
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: 'Falha ao salvar token push' }); }
+});
+
 app.get('/api/me', authMiddleware, async (req: any, res) => {
     try {
         if (req.user.tenant_id === 'master') {
@@ -303,6 +316,30 @@ app.post('/api/whatsapp/logout', authMiddleware, async (req: any, res) => {
     res.json({ success: true });
 });
 
+app.get('/api/coupons', authMiddleware, async (req: any, res) => {
+    try {
+        const coupons = await prisma.coupon.findMany({ where: { tenant_id: req.user.tenant_id } });
+        res.json(coupons);
+    } catch(e) { res.status(500).json({ error: 'Error' }); }
+});
+
+app.post('/api/coupons', authMiddleware, async (req: any, res) => {
+    try {
+        const { code, type, value, min_order } = req.body;
+        const coupon = await prisma.coupon.create({
+            data: { tenant_id: req.user.tenant_id, code: code.toUpperCase(), type, value, min_order }
+        });
+        res.json(coupon);
+    } catch(e) { res.status(500).json({ error: 'Error' }); }
+});
+
+app.delete('/api/coupons/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await prisma.coupon.delete({ where: { id: req.params.id, tenant_id: req.user.tenant_id } });
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: 'Error' }); }
+});
+
 // Products & Categories
 app.get('/api/categories', authMiddleware, async (req: any, res) => {
     try {
@@ -317,6 +354,18 @@ app.post('/api/categories', authMiddleware, async (req: any, res) => {
         const category = await prisma.category.create({ data: { name, tenant_id: req.user.tenant_id } });
         res.json(category);
     } catch (e) { res.status(500).json({ error: 'Error' }); }
+});
+
+app.put('/api/categories/:id/toggle', authMiddleware, async (req: any, res) => {
+    try {
+        const category = await prisma.category.findUnique({ where: { id: req.params.id, tenant_id: req.user.tenant_id } });
+        if (!category) return res.status(404).json({ error: 'Category not found' });
+        const updated = await prisma.category.update({
+            where: { id: category.id },
+            data: { active: !category.active }
+        });
+        res.json(updated);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/products', authMiddleware, async (req: any, res) => {
@@ -355,6 +404,18 @@ app.put('/api/products/:id', authMiddleware, async (req: any, res) => {
             data: { name, description, price: parseFloat(price), category_id, image_url }
         });
         res.json(product);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/products/:id/toggle', authMiddleware, async (req: any, res) => {
+    try {
+        const product = await prisma.product.findUnique({ where: { id: req.params.id, tenant_id: req.user.tenant_id } });
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+        const updated = await prisma.product.update({
+            where: { id: product.id },
+            data: { active: !product.active }
+        });
+        res.json(updated);
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -416,6 +477,18 @@ app.post('/api/public/orders', async (req, res) => {
         
         // Notify Panel
         io.to(tenant_id).emit('new_order', order);
+
+        // --- PUSH NOTIFICATION TO ADMINS ---
+        const admins = await prisma.gymAdmin.findMany({ where: { tenant_id } });
+        for (const admin of admins) {
+            if (admin.fcm_token) {
+                sendPushNotification(
+                    admin.fcm_token, 
+                    '🍔 NOVO PEDIDO!', 
+                    `Você recebeu um novo pedido de R$ ${total.toFixed(2)}`
+                );
+            }
+        }
         
         // Notify Customer via WhatsApp
         const tenant = await prisma.tenant.findUnique({ where: { id: tenant_id } });
@@ -439,6 +512,29 @@ app.get('/api/orders', authMiddleware, async (req: any, res) => {
             take: 100
         });
         res.json(orders);
+    } catch (e) { res.status(500).json({ error: 'Error' }); }
+});
+
+app.get('/api/reports/stats', authMiddleware, async (req: any, res) => {
+    try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const orders = await prisma.order.findMany({
+            where: { tenant_id: req.user.tenant_id, created_at: { gte: startOfMonth } },
+            select: { total: true, created_at: true, status: true }
+        });
+
+        const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
+        const delivered = orders.filter(o => o.status === 'DELIVERED').length;
+        
+        // Group by day for a basic chart
+        const daily = orders.reduce((acc: any, o) => {
+            const day = o.created_at.toISOString().split('T')[0];
+            acc[day] = (acc[day] || 0) + o.total;
+            return acc;
+        }, {});
+
+        res.json({ totalRevenue, totalOrders: orders.length, delivered, daily });
     } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
 
@@ -473,9 +569,18 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
             // 2. Notify Global Fleet via Socket
             io.to('drivers_global').emit('new_delivery_request', request);
 
-            // 3. Notify Online Drivers via WhatsApp (RELIABILITY)
+            // 3. Notify Online Drivers via PUSH
             const onlineDrivers = await prisma.deliveryDriver.findMany({ where: { isOnline: true } });
             for (const driver of onlineDrivers) {
+                if (driver.fcm_token) {
+                    sendPushNotification(
+                        driver.fcm_token, 
+                        '🛵 Entrega Disponível!', 
+                        `Novo pedido pronto em ${order.tenant.name}`
+                    );
+                }
+
+                // 4. Notify Online Drivers via WhatsApp (RELIABILITY)
                 const driverJid = `${driver.phone}@s.whatsapp.net`;
                 const text = `🛵 *NOVO PEDIDO DISPONÍVEL!* 🚀\n\n🏠 *Loja:* ${order.tenant.name}\n📍 *Entrega:* ${order.delivery_address || 'Endereço não informado'}\n💰 *Geral:* R$ ${order.total.toFixed(2)}\n\n*Abra o painel para aceitar:* ${req.protocol}://${req.get('host')}/driver`;
                 await sendMessageToJid(order.tenant_id, driverJid, text);
@@ -631,16 +736,49 @@ app.post('/api/driver/finish/:requestId', authMiddleware, async (req: any, res) 
         const request = await prisma.deliveryRequest.findUnique({ where: { id: req.params.requestId }, include: { order: { include: { customer: true } } } });
         if (!request || request.status !== 'ACCEPTED') return res.status(400).json({ error: 'Não disponível' });
         
+        const tenant = await prisma.tenant.findUnique({ where: { id: request.tenant_id } });
+        const commission = tenant?.commission_rate || 5.0;
+
         await prisma.$transaction([
             prisma.deliveryRequest.update({ where: { id: request.id }, data: { status: 'COMPLETED' } }),
-            prisma.order.update({ where: { id: request.order_id }, data: { status: 'DELIVERED' } })
+            prisma.order.update({ where: { id: request.order_id }, data: { status: 'DELIVERED' } }),
+            prisma.transaction.create({
+                data: {
+                    driver_id: req.user.driver_id,
+                    amount: commission,
+                    type: 'EARNING',
+                    description: `Entrega do pedido #${request.order_id.slice(-4)}`
+                }
+            })
         ]);
         
-        io.to(req.user.tenant_id).emit('order_delivered', { orderId: request.order_id });
+        io.to(request.tenant_id).emit('order_delivered', { orderId: request.order_id });
         if (request.order.customer.whatsapp_jid) {
-            await sendMessageToJid(req.user.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido foi entregue com sucesso! Bom apetite! 🍔😋`);
+            await sendMessageToJid(request.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido foi entregue com sucesso! Bom apetite! 🍔😋`);
         }
         res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: 'Erro' }); }
+});
+
+app.get('/api/driver/wallet', authMiddleware, async (req: any, res) => {
+    if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
+    try {
+        const transactions = await prisma.transaction.findMany({
+            where: { driver_id: req.user.driver_id },
+            orderBy: { created_at: 'desc' },
+            take: 20
+        });
+        const aggregate = await prisma.transaction.groupBy({
+            by: ['type'],
+            where: { driver_id: req.user.driver_id },
+            _sum: { amount: true }
+        });
+        
+        const earnings = aggregate.find(a => a.type === 'EARNING')?._sum.amount || 0;
+        const payouts = aggregate.find(a => a.type === 'PAYOUT')?._sum.amount || 0;
+        const balance = earnings - payouts;
+
+        res.json({ balance, transactions });
     } catch(e) { res.status(500).json({ error: 'Erro' }); }
 });
 

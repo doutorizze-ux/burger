@@ -1,11 +1,13 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import io from 'socket.io-client';
-import { QrCode, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Bell, PlusCircle, CheckCircle2, Map as MapIcon, Menu, X } from 'lucide-react';
+import { QrCode, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Bell, PlusCircle, CheckCircle2, Map as MapIcon, Menu, X, Power, BarChart3, PieChart, Ticket, Trash2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
+import { requestForToken, onMessageListener } from '../firebase';
+import { toast } from 'react-toastify';
 
 let socket: any;
 
@@ -37,6 +39,12 @@ export default function AdminPanel() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [reportStats, setReportStats] = useState<any>(null);
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [newCoupon, setNewCoupon] = useState({ code: '', type: 'PERCENT', value: 0, min_order: 0 });
+  const [isAlarmPlaying, setIsAlarmPlaying] = useState(false);
+  const [alarmAudio] = useState(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')); // Loud doorbell/alarm
+
   const [newCat, setNewCat] = useState('');
   
   const token = localStorage.getItem('token');
@@ -49,6 +57,19 @@ export default function AdminPanel() {
 
   const [activeDriversLocations, setActiveDriversLocations] = useState<any>({});
   const [mapCenter, setMapCenter] = useState<{lat: number, lng: number} | null>(null);
+
+  useEffect(() => {
+    alarmAudio.loop = true;
+    return () => {
+        alarmAudio.pause();
+    };
+  }, [alarmAudio]);
+
+  const stopAlarm = () => {
+    setIsAlarmPlaying(false);
+    alarmAudio.pause();
+    alarmAudio.currentTime = 0;
+  };
 
   useEffect(() => {
     fetchData();
@@ -68,8 +89,9 @@ export default function AdminPanel() {
 
     socket.on('new_order', (order: any) => {
         setOrders(prev => [order, ...prev]);
-        const audio = new Audio('/notification.mp3');
-        audio.play().catch(() => {});
+        setIsAlarmPlaying(true);
+        alarmAudio.play().catch(e => console.log("Audio block:", e));
+        toast.success("🍔 NOVO PEDIDO RECEBIDO!", { position: "top-center", autoClose: 10000 });
     });
 
     socket.on('qr_code', (qr: string) => setWaQr(qr));
@@ -99,6 +121,34 @@ export default function AdminPanel() {
             locations[d.id] = { lat: d.latitude, lng: d.longitude, name: d.name };
         });
         setActiveDriversLocations(locations);
+    });
+    fetch('/api/reports/stats', {headers}).then(r=>r.json()).then(setReportStats);
+    fetch('/api/coupons', {headers}).then(r=>r.json()).then(setCoupons);
+
+    // Firebase Push Notifications
+    requestForToken().then(fcmToken => {
+        if (fcmToken) {
+            fetch('/api/fcm-token', {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: fcmToken })
+            });
+        }
+    });
+
+    onMessageListener().then((payload : any) => {
+        setIsAlarmPlaying(true);
+        alarmAudio.play().catch(e => console.log("Audio block:", e));
+        toast.info(payload.notification.title + ": " + payload.notification.body, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "colored",
+        });
+        fetchData();
     });
   };
 
@@ -195,8 +245,44 @@ export default function AdminPanel() {
     setIsUploading(false);
   };
 
+  const toggleProduct = async (id: string) => {
+    await fetch(`/api/products/${id}/toggle`, { method: 'PUT', headers });
+    fetchData();
+  };
+
+  const toggleCategory = async (id: string) => {
+    await fetch(`/api/categories/${id}/toggle`, { method: 'PUT', headers });
+    fetchData();
+  };
+
+  const createCoupon = async (e: any) => {
+    e.preventDefault();
+    const res = await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCoupon)
+    });
+    if (res.ok) {
+        setNewCoupon({ code: '', type: 'PERCENT', value: 0, min_order: 0 });
+        alert('Cupom criado com sucesso!');
+        fetchData();
+    }
+  };
+
+  const deleteCoupon = async (id: string) => {
+    if(!confirm('Deseja excluir este cupom?')) return;
+    await fetch(`/api/coupons/${id}`, { method: 'DELETE', headers });
+    fetchData();
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans overflow-hidden relative">
+    <div onClick={stopAlarm} className="min-h-screen bg-slate-50 flex font-sans overflow-hidden relative">
+       {isAlarmPlaying && (
+         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-8 py-4 rounded-full shadow-2xl animate-bounce flex items-center gap-3 cursor-pointer">
+            <Bell className="animate-ring" />
+            <span className="font-black">NOVO PEDIDO! CLIQUE PARA PARAR O ALERTA</span>
+         </div>
+       )}
       {/* Sidebar - Backdrop for mobile */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -247,7 +333,12 @@ export default function AdminPanel() {
           <button onClick={()=>{setActiveTab('drivers'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='drivers'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Truck size={20}/> Rede Entrega (Uber)
           </button>
-          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-8">Sistema</p>
+          <button onClick={()=>{setActiveTab('reports'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='reports'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <TrendingUp size={20}/> Relatórios
+          </button>
+          <button onClick={()=>{setActiveTab('marketing'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='marketing'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+            <Ticket size={20}/> Cupons (Marketing)
+          </button>
           <button onClick={()=>{setActiveTab('settings'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='settings'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Settings size={20}/> Configurações
           </button>
@@ -370,28 +461,38 @@ export default function AdminPanel() {
                          <input required className="flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" value={newCat} onChange={e=>setNewCat(e.target.value)} />
                          <button className="bg-slate-900 text-white p-4 rounded-2xl">+</button>
                       </form>
-                      <div className="space-y-2">
-                         {categories.map(c => (
-                            <div key={c.id} className="p-4 rounded-2xl bg-slate-50 font-bold border border-slate-100 flex justify-between">
-                               <span>{c.name}</span>
-                            </div>
-                         ))}
-                      </div>
-                   </div>
-                   <div className="lg:col-span-2 bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-                      <h3 className="text-xl font-black mb-6">Produtos Ativos</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         {products.map(p => (
-                            <div key={p.id} className="p-4 rounded-3xl border border-slate-50 flex gap-4">
-                               <div className="w-16 h-16 bg-slate-100 rounded-xl"></div>
-                               <div>
-                                  <h5 className="font-bold text-slate-800">{p.name}</h5>
-                                  <p className="font-black text-green-600">R$ {p.price.toFixed(2)}</p>
-                               </div>
-                            </div>
-                         ))}
-                      </div>
-                   </div>
+                    <div className="space-y-3">
+                       {categories.map(c => (
+                          <div key={c.id} className="p-4 rounded-2xl bg-slate-50 font-bold border border-slate-100 flex justify-between items-center group">
+                             <span className={c.active ? '' : 'text-slate-400 line-through'}>{c.name}</span>
+                             <button onClick={()=>toggleCategory(c.id)} className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${c.active ? 'bg-green-100 text-green-600 hover:bg-orange-100 hover:text-orange-600' : 'bg-slate-200 text-slate-500 hover:bg-green-100 hover:text-green-600'}`}>
+                                {c.active ? 'Ativo' : 'Pausado'}
+                             </button>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+                 <div className="lg:col-span-2 bg-white p-6 lg:p-10 rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+                    <h3 className="text-xl font-black mb-6">Produtos e Disponibilidade</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                       {products.map(p => (
+                          <div key={p.id} className={`p-4 rounded-3xl border transition-all flex items-center justify-between ${p.active ? 'border-slate-50 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
+                             <div className="flex gap-4 items-center">
+                                <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                                    {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" /> : <PlusCircle className="text-slate-200"/>}
+                                </div>
+                                <div>
+                                   <h5 className="font-bold text-slate-800 text-sm">{p.name}</h5>
+                                   <p className="font-black text-green-600 text-sm">R$ {p.price.toFixed(2)}</p>
+                                </div>
+                             </div>
+                             <button onClick={()=>toggleProduct(p.id)} className={`p-2.5 rounded-xl border transition-all ${p.active ? 'bg-green-50 text-green-600 border-green-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100' : 'bg-slate-200 text-slate-500 border-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-100'}`}>
+                                <Power size={18} />
+                             </button>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
                 </div>
               )}
 
@@ -495,7 +596,92 @@ export default function AdminPanel() {
                 </div>
               )}
 
-              {activeTab === 'settings' && (
+              {activeTab === 'reports' && (
+                  <div className="space-y-10">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                           <BarChart3 size={32} className="text-orange-500 mb-4"/>
+                           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Vendas (Mensal)</p>
+                           <h3 className="text-3xl font-black text-slate-800">R$ {reportStats?.totalRevenue?.toFixed(2) || '0.00'}</h3>
+                        </div>
+                        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                           <PieChart size={32} className="text-indigo-500 mb-4"/>
+                           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Total Pedidos</p>
+                           <h3 className="text-3xl font-black text-slate-800">{reportStats?.totalOrders || 0}</h3>
+                        </div>
+                        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                           <CheckCircle2 size={32} className="text-green-500 mb-4"/>
+                           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Entregas Sucesso</p>
+                           <h3 className="text-3xl font-black text-slate-800">{reportStats?.delivered || 0}</h3>
+                        </div>
+                     </div>
+
+                     <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
+                        <h3 className="text-xl font-black mb-8">Performance por Dia (Ganha-pão)</h3>
+                        <div className="h-[250px] flex items-end gap-2 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                           {reportStats?.daily && Object.keys(reportStats.daily).sort().map(day => (
+                              <div key={day} className="flex-1 min-w-[40px] flex flex-col items-center gap-2 group">
+                                 <div 
+                                   className="w-full bg-orange-500 rounded-t-xl transition-all group-hover:bg-orange-600 relative" 
+                                   style={{ height: `${Math.max(10, (reportStats.daily[day] / Math.max(1, reportStats.totalRevenue || 1)) * 200)}px` }}
+                                 >
+                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                        R${reportStats.daily[day].toFixed(0)}
+                                     </div>
+                                 </div>
+                                 <p className="text-[10px] font-bold text-slate-400 truncate w-full text-center">{day.split('-')[2]}/{day.split('-')[1]}</p>
+                              </div>
+                           ))}
+                           {!reportStats?.daily && <p className="w-full text-center text-slate-400 font-bold py-20">Nenhum dado para exibir ainda.</p>}
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {activeTab === 'marketing' && (
+                  <div className="space-y-10">
+                     <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
+                        <h3 className="text-xl font-black mb-8 flex items-center gap-2 font-bold"><Ticket size={24}/> Criar Novo Cupom de Desconto</h3>
+                        <form onSubmit={createCoupon} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                           <input placeholder="Ex: PITDOG20" required className="p-4 rounded-2xl bg-slate-50 border border-slate-200 uppercase font-bold" value={newCoupon.code} onChange={e=>setNewCoupon({...newCoupon, code: e.target.value})} />
+                           <select className="p-4 rounded-2xl bg-slate-50 border border-slate-200 font-bold" value={newCoupon.type} onChange={e=>setNewCoupon({...newCoupon, type: e.target.value})}>
+                              <option value="PERCENT">Porcentagem (%)</option>
+                              <option value="FIXED">Valor Fixo (R$)</option>
+                           </select>
+                           <input type="number" placeholder="Valor" required className="p-4 rounded-2xl bg-slate-50 border border-slate-200 font-bold" value={newCoupon.value} onChange={e=>setNewCoupon({...newCoupon, value: parseFloat(e.target.value)})} />
+                           <button className="bg-orange-500 text-white p-4 rounded-2xl font-black hover:bg-orange-600 transition-all">CRIAR CUPOM</button>
+                        </form>
+                     </div>
+
+                     <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
+                        <h3 className="text-xl font-black mb-8 font-bold">Cupons Ativos</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                           {coupons.map(c => (
+                              <div key={c.id} className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 relative group overflow-hidden">
+                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={()=>deleteCoupon(c.id)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100"><Trash2 size={16}/></button>
+                                 </div>
+                                 <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">CÓDIGO</p>
+                                 <h4 className="text-2xl font-black text-slate-800 mb-4">{c.code}</h4>
+                                 <div className="flex justify-between items-end">
+                                    <div>
+                                       <p className="text-[10px] font-bold text-slate-400 uppercase">Desconto</p>
+                                       <p className="font-black text-slate-700">{c.type==='PERCENT'?`${c.value}%`:`R$ ${c.value.toFixed(2)}`}</p>
+                                    </div>
+                                    <div className="text-right">
+                                       <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
+                                       <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-bold">ATIVO</span>
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                           {coupons.length === 0 && <p className="col-span-full py-10 text-center text-slate-400 italic font-medium">Você ainda não criou nenhum cupom promocional.</p>}
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {activeTab === 'settings' && (
                  <div className="max-w-4xl mx-auto space-y-8">
                     <div className="bg-white p-8 lg:p-10 rounded-[40px] shadow-sm border border-slate-100">
                         <h3 className="text-xl font-black mb-8 text-slate-800 flex items-center gap-2"><Settings size={20}/> Perfil do Estabelecimento</h3>

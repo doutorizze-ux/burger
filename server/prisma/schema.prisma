@@ -90,6 +90,7 @@ model GymAdmin {
   name          String
   tenant_id     String
   tenant        Tenant   @relation(fields: [tenant_id], references: [id])
+  fcm_token     String?
 }
 
 model Customer {
@@ -257,10 +258,27 @@ model DeliveryDriver {
   isOnline    Boolean  @default(false)
   latitude    Float?
   longitude   Float?
+  fcm_token   String?
   created_at  DateTime @default(now())
 
-  requests    DeliveryRequest[]
+  requests      DeliveryRequest[]
+  coupons       Coupon[]
+  transactions Transaction[]
   trackings   DeliveryTracking[]
+}
+
+model Coupon {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id])
+  code          String
+  type          String   // PERCENT, FIXED
+  value         Float
+  min_order     Float    @default(0)
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+
+  @@unique([tenant_id, code])
 }
 
 model DeliveryRequest {

@@ -221,7 +221,8 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                 await humanizedSendMessage(sock, remoteJid, { text: `Desculpe, nosso cardápio está sendo atualizado no momento.` });
                 return;
             }
-            let reply = `🍔 Olá *${customer.name.split(' ')[0]}*! Somos da *${tenant.name}*!\n\n🤖 Eu sou o Garçom Virtual e vou anotar seu pedido de forma 100% automática!\n\n*Digite o NÚMERO da categoria que deseja:*👇\n\n`;
+            const catalogUrl = `${tenant.slug ? 'https://pitdog.ai/' + tenant.slug : 'http://localhost:5173/catalog/' + tenantId}`;
+            let reply = `🍔 Olá *${customer.name.split(' ')[0]}*! Somos da *${tenant.name}*!\n\n🤖 Eu sou o Garçom Virtual. Você pode pedir por aqui ou ver nosso cardápio completo com fotos aqui: \n🔗 ${catalogUrl}\n\n*Digite o NÚMERO da categoria que deseja:*👇\n\n`;
             categories.forEach((cat, index) => {
                 reply += `*${index + 1}.* ${cat.name}\n`;
             });
@@ -277,15 +278,26 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
             mem.currentProduct = prod;
             mem.selectedExtras = [];
             
+            let prodReply = `🥩 Você escolheu *${prod.name}*!\n_${prod.description || ''}_\n\n`;
+
+            if (prod.image_url) {
+                // If there's an image, we send it with the caption
+                await humanizedSendMessage(sock, remoteJid, { 
+                    image: { url: prod.image_url }, 
+                    caption: prodReply
+                });
+            }
+
             if (!prod.extras || prod.extras.length === 0) {
                  // No extras, add direct to cart
                  mem.cart.push({ product: prod, extras: [], quantity: 1, total: prod.price });
                  mem.step = 4;
                  botMemory.set(remoteJid, mem);
-                 await humanizedSendMessage(sock, remoteJid, { text: `✅ *${prod.name}* adicionado ao carrinho!\n\nDeseja adicionar mais algum item ao seu pedido?\n*1.* Sim, pedir mais coisas\n*2.* Não, finalizar e pagar` });
+                 const reply = prod.image_url ? `✅ Adicionado ao carrinho!` : prodReply + `✅ Adicionado ao carrinho!`;
+                 await humanizedSendMessage(sock, remoteJid, { text: `${reply}\n\nDeseja adicionar mais algum item ao seu pedido?\n*1.* Sim, pedir mais coisas\n*2.* Não, finalizar e pagar` });
                  return;
             } else {
-                 let reply = `🥩 Você escolheu *${prod.name}*!\n\nDeseja algum *ADICIONAL*? Digite os números (Ex: 1, 3) ou 0 para NENHUM:\n\n`;
+                 let reply = prod.image_url ? `Deseja algum *ADICIONAL*? Digite os números (Ex: 1, 3) ou 0 para NENHUM:\n\n` : prodReply + `Deseja algum *ADICIONAL*? Digite os números (Ex: 1, 3) ou 0 para NENHUM:\n\n`;
                  prod.extras.forEach((ext:any, i:number) => {
                      reply += `*${i + 1}.* ${ext.name} (+R$ ${ext.price.toFixed(2)})\n`;
                  });
@@ -339,10 +351,10 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                     total += c.total;
                 });
                 mem.finalTotal = total;
-                summary += `\nTaxa Básica a Confirmar...`;
-                summary += `\n\nPor favor, *digite seu endereço completo com bairro e cidade* para calcularmos a Exata Taxa de Entrega:`;
+                summary += `\n*Total em Produtos: R$ ${total.toFixed(2)}*`;
+                summary += `\n\n🎫 Você possui algum *CUPOM DE DESCONTO*?\n\nDigite o código do cupom ou envie *0* para continuar sem cupom.`;
                 
-                mem.step = 5;
+                mem.step = 4.5;
                 botMemory.set(remoteJid, mem);
                 await humanizedSendMessage(sock, remoteJid, { text: summary });
                 return;
@@ -350,6 +362,34 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                 await humanizedSendMessage(sock, remoteJid, { text: `Opção inválida. Digite 1 ou 2.` });
                 return;
             }
+        }
+
+        // Step 4.5: Handle Coupon
+        if (mem.step === 4.5) {
+            if (input !== '0') {
+                const coupon = await prisma.coupon.findFirst({
+                    where: { tenant_id: tenantId, code: input.toUpperCase(), active: true }
+                });
+
+                if (coupon) {
+                    let discount = 0;
+                    if (coupon.type === 'PERCENT') {
+                        discount = (mem.finalTotal * coupon.value) / 100;
+                    } else {
+                        discount = coupon.value;
+                    }
+                    mem.finalTotal = Math.max(0, mem.finalTotal - discount);
+                    mem.appliedCoupon = coupon.code;
+                    await humanizedSendMessage(sock, remoteJid, { text: `✅ Cupom *${coupon.code}* aplicado! Desconto de R$ ${discount.toFixed(2)}.` });
+                } else {
+                    await humanizedSendMessage(sock, remoteJid, { text: `❌ Cupom inválido ou expirado. Continuando sem desconto...` });
+                }
+            }
+
+            mem.step = 5;
+            botMemory.set(remoteJid, mem);
+            await humanizedSendMessage(sock, remoteJid, { text: `📍 Por favor, *digite seu endereço completo com bairro e cidade* para calcularmos a Taxa de Entrega:` });
+            return;
         }
 
         // Step 5: Address

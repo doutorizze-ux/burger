@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck } from 'lucide-react';
+import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck, Wallet, History, TrendingUp } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { darkMapStyle } from '../mapStyles';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,10 +22,11 @@ export default function DriverPanel() {
   const [requests, setRequests] = useState<any[]>([]);
   const [myDeliveries, setMyDeliveries] = useState<any[]>([]);
   const activeDeliveries = myDeliveries.filter(d => d.order.status !== 'DELIVERED');
-  const [activeTab, setActiveTab] = useState<'requests' | 'active'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'active' | 'wallet'>('requests');
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [walletData, setWalletData] = useState<{balance: number, transactions: any[]}>({balance: 0, transactions: []});
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { isLoaded } = useJsApiLoader({
@@ -134,6 +135,18 @@ export default function DriverPanel() {
         }
     );
   }, [isLoaded, currentLocation, activeDeliveries]);
+
+  const fetchWallet = async () => {
+    const token = localStorage.getItem('driverToken');
+    const res = await fetch('/api/driver/wallet', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) setWalletData(await res.json());
+  };
+
+  useEffect(() => {
+    if (activeTab === 'wallet') fetchWallet();
+  }, [activeTab]);
 
   const initSocket = (driverId: string, token: string | null) => {
     socket = io({ auth: { token } });
@@ -404,6 +417,45 @@ export default function DriverPanel() {
                         ))}
                       </AnimatePresence>
                   </div>
+              )}
+
+              {activeTab === 'wallet' && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                      <div className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] text-center shadow-2xl">
+                          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Saldo Disponível</p>
+                          <h2 className="text-4xl font-black text-white">R$ {walletData.balance.toFixed(2)}</h2>
+                          <div className="flex gap-2 justify-center mt-6">
+                              <div className="bg-orange-500/10 text-orange-500 px-4 py-2 rounded-full text-[10px] font-bold border border-orange-500/20">Aguardando Pagamento</div>
+                          </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-2">
+                          <History size={18} className="text-slate-500"/>
+                          <h3 className="font-black text-white text-sm uppercase">Últimos Ganhos</h3>
+                      </div>
+
+                      <div className="space-y-3 pb-20">
+                          {walletData.transactions.map((t: any) => (
+                              <div key={t.id} className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-orange-500">
+                                          <TrendingUp size={18}/>
+                                      </div>
+                                      <div className="max-w-[180px]">
+                                          <p className="font-bold text-white text-sm truncate">{t.description}</p>
+                                          <p className="text-[10px] text-slate-500">{new Date(t.created_at).toLocaleDateString('pt-BR')} as {new Date(t.created_at).toLocaleTimeString('pt-BR', {hour: '2d', minute: '2d'})}</p>
+                                      </div>
+                                  </div>
+                                  <p className="font-black text-green-500">R$ {t.amount.toFixed(2)}</p>
+                              </div>
+                          ))}
+                          {walletData.transactions.length === 0 && (
+                              <div className="text-center py-20 bg-slate-900/20 rounded-[32px] border border-dashed border-slate-800">
+                                  <p className="text-slate-500 font-bold italic">Nenhum ganho registrado ainda.</p>
+                              </div>
+                          )}
+                      </div>
+                  </motion.div>
               )}
           </div>
       </main>
