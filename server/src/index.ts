@@ -86,7 +86,14 @@ export const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
+const driverLocations: any = {};
+
 io.on('connection', (socket) => {
+    socket.on('driver_offline', ({ driverId }) => {
+        delete driverLocations[driverId];
+        io.emit('driver_offline', { driverId });
+    });
+
     socket.on('join', (tenantId) => socket.join(tenantId));
     socket.on('driver_online', async ({ driverId, lat, lng }) => {
         try {

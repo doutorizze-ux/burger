@@ -201,6 +201,23 @@ export default function DriverPanel() {
     window.open(url, '_blank');
   };
 
+  const toggleOnline = () => {
+    const newStatus = !isOnline;
+    setIsOnline(newStatus);
+    if (!newStatus && socket && driver) {
+        socket.emit('driver_offline', { driverId: driver.id });
+    }
+  };
+
+  const logout = () => {
+    if (socket && driver) {
+        socket.emit('driver_offline', { driverId: driver.id });
+    }
+    localStorage.removeItem('driver');
+    localStorage.removeItem('driverToken');
+    window.location.href='/';
+  };
+
   if (!driver) return null;
 
 
@@ -259,12 +276,12 @@ export default function DriverPanel() {
         </div>
         <div className="flex items-center gap-4">
             <button 
-               onClick={() => setIsOnline(!isOnline)} 
+               onClick={toggleOnline} 
                className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${isOnline ? 'bg-green-600/20 text-green-400 border border-green-500/30' : 'bg-red-600/20 text-red-400 border border-red-500/30'}`}
             >
                {isOnline ? 'EM TURNO' : 'OFFLINE'}
             </button>
-            <button onClick={() => { localStorage.removeItem('driver'); window.location.href='/'; }} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
+            <button onClick={logout} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
                 <LogOut size={18}/>
             </button>
         </div>

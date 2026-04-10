@@ -122,6 +122,13 @@ export default function AdminPanel() {
         });
         setActiveDriversLocations(locations);
     });
+    socket.on('driver_offline', ({ driverId }) => {
+        setActiveDriversLocations((prev: any) => {
+            const newLocs = { ...prev };
+            delete newLocs[driverId];
+            return newLocs;
+        });
+    });
     fetch('/api/reports/stats', {headers}).then(r=>r.json()).then(setReportStats);
     fetch('/api/coupons', {headers}).then(r=>r.json()).then(setCoupons);
 
