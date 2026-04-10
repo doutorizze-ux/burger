@@ -13,7 +13,7 @@ let socket: any;
 
 const mapContainerStyle = {
   width: '100%',
-  height: '400px',
+  height: '100%',
   borderRadius: '24px'
 };
 
@@ -111,15 +111,7 @@ export default function AdminPanel() {
         }));
     });
 
-    socket.on('driver_offline', ({ driverId }) => {
-        setActiveDriversLocations((prev: any) => {
-            const newLocs = { ...prev };
-            delete newLocs[driverId];
-            return newLocs;
-        });
-    });
-
-        socket.on('driver_offline', ({ driverId }) => {
+        socket.on('driver_offline', ({ driverId }: any) => {
             setActiveDriversLocations((prev: any) => {
                 const newLocs = { ...prev };
                 delete newLocs[driverId];
@@ -721,7 +713,7 @@ export default function AdminPanel() {
                       <div className="h-[500px] bg-slate-50 rounded-[40px] overflow-hidden border border-slate-100 shadow-inner translate-z-0">
                          {isLoaded && mapCenter ? (
                             <GoogleMap
-                               mapContainerStyle={{width:'100%', height:'100%'}}
+                               mapContainerStyle={mapContainerStyle}
                                center={Object.values(activeDriversLocations)[0] as any || mapCenter}
                                zoom={14}
                                options={{ styles: uberMapStyle, disableDefaultUI: true, zoomControl: true }}
