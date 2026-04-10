@@ -48,14 +48,13 @@ export const reconnectSessions = async () => {
         where: { whatsapp_status: 'CONNECTED', status: 'ACTIVE' }
     });
 
-    const { io } = await import('./index.js');
     for (const tenant of connectedTenants) {
         if (sessions.has(tenant.id)) continue;
         try {
             await initWhatsApp(
                 tenant.id,
-                (qr) => io.to(tenant.id).emit('qr_code', qr),
-                (status) => io.to(tenant.id).emit('whatsapp_status', status)
+                (qr) => eventBus.emit(EVENTS.WHATSAPP_QR, { tenantId: tenant.id, qr }),
+                (status) => eventBus.emit(EVENTS.WHATSAPP_STATUS, { tenantId: tenant.id, status })
             );
         } catch (err) {
             await prisma.tenant.update({ where: { id: tenant.id }, data: { whatsapp_status: 'DISCONNECTED' } });
@@ -132,7 +131,11 @@ export const initWhatsApp = async (tenantId: string, onQr?: (qr: string) => void
         if (m.type === 'notify') {
             for (const msg of m.messages) {
                 if (!msg.key.fromMe && msg.message) {
-                    await handleMessage(tenantId, msg, sock);
+                    try {
+                        await handleMessage(tenantId, msg, sock);
+                    } catch (err) {
+                        console.error('[WA] Critical Error in handleMessage:', err);
+                    }
                 }
             }
         }

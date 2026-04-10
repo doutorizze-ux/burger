@@ -16,6 +16,15 @@ import { sendPushNotification } from './firebaseAdmin.js';
 import multer from 'multer';
 import cors from 'cors';
 
+// Listen to WhatsApp events from manager
+eventBus.on(EVENTS.WHATSAPP_QR, ({ tenantId, qr }: any) => {
+    io.to(tenantId).emit('qr_code', qr);
+});
+
+eventBus.on(EVENTS.WHATSAPP_STATUS, ({ tenantId, status }: any) => {
+    io.to(tenantId).emit('whatsapp_status', status);
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
