@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import io from 'socket.io-client';
-import { QrCode, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Bell, PlusCircle, CheckCircle2, Map as MapIcon, Menu, X, Power, BarChart3, PieChart, Ticket, Trash2 } from 'lucide-react';
+import { QrCode, LayoutDashboard, Settings, LogOut, Clock, Truck, Users, TrendingUp, Bell, PlusCircle, CheckCircle2, Map as MapIcon, Menu, X, Power, BarChart3, PieChart, Ticket, Trash2, Package } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
@@ -46,6 +46,12 @@ export default function AdminPanel() {
   const [alarmAudio] = useState(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')); // Loud doorbell/alarm
 
   const [newCat, setNewCat] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', price: 0, description: '', image_url: '' });
+  const [showExtraModal, setShowExtraModal] = useState(false);
+  const [currentProductId, setCurrentProductId] = useState<string | null>(null);
+  const [newExtra, setNewExtra] = useState({ name: '', price: 0 });
   
   const token = localStorage.getItem('token');
   const headers = { 'Authorization': `Bearer ${token}` };
@@ -105,6 +111,14 @@ export default function AdminPanel() {
         }));
     });
 
+    socket.on('driver_offline', ({ driverId }) => {
+        setActiveDriversLocations((prev: any) => {
+            const newLocs = { ...prev };
+            delete newLocs[driverId];
+            return newLocs;
+        });
+    });
+
     return () => { socket.disconnect(); };
   }, [user]);
 
@@ -114,7 +128,6 @@ export default function AdminPanel() {
     fetch('/api/products', {headers}).then(r=>r.json()).then(setProducts);
     fetch('/api/chats', {headers}).then(r=>r.json()).then(setCustomers);
     
-    // Initial drivers load
     fetch('/api/drivers/online', {headers}).then(r=>r.json()).then(data => {
         const locations: any = {};
         data.filter((d:any) => d.latitude).forEach((d:any) => {
@@ -122,17 +135,10 @@ export default function AdminPanel() {
         });
         setActiveDriversLocations(locations);
     });
-    socket.on('driver_offline', ({ driverId }) => {
-        setActiveDriversLocations((prev: any) => {
-            const newLocs = { ...prev };
-            delete newLocs[driverId];
-            return newLocs;
-        });
-    });
+    
     fetch('/api/reports/stats', {headers}).then(r=>r.json()).then(setReportStats);
     fetch('/api/coupons', {headers}).then(r=>r.json()).then(setCoupons);
 
-    // Firebase Push Notifications
     requestForToken().then(fcmToken => {
         if (fcmToken) {
             fetch('/api/fcm-token', {
@@ -149,10 +155,6 @@ export default function AdminPanel() {
         toast.info(payload.notification.title + ": " + payload.notification.body, {
             position: "top-right",
             autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
             theme: "colored",
         });
         fetchData();
@@ -282,6 +284,47 @@ export default function AdminPanel() {
     fetchData();
   };
 
+  const addProduct = async (e: any) => {
+    e.preventDefault();
+    if(!selectedCategoryId) return alert('Selecione uma categoria primeiro');
+    const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newProduct, category_id: selectedCategoryId })
+    });
+    if(res.ok) {
+        setShowProductModal(false);
+        setNewProduct({ name: '', price: 0, description: '', image_url: '' });
+        fetchData();
+    }
+  };
+
+  const addExtra = async (e: any) => {
+    e.preventDefault();
+    const res = await fetch(`/api/products/${currentProductId}/extras`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newExtra)
+    });
+    if(res.ok) {
+        setShowExtraModal(false);
+        setNewExtra({ name: '', price: 0 });
+        fetchData();
+    }
+  };
+
+  const deleteExtra = async (id: string) => {
+    if(!confirm('Remover este adicional?')) return;
+    await fetch(`/api/extras/${id}`, { method: 'DELETE', headers });
+    fetchData();
+  };
+
+  const deleteProduct = async (id: string) => {
+    if(!confirm('Excluir este produto permanentemente?')) return;
+    await fetch(`/api/products/${id}`, { method: 'DELETE', headers });
+    fetchData();
+  };
+
   return (
     <div onClick={stopAlarm} className="min-h-screen bg-slate-50 flex font-sans overflow-hidden relative">
        {isAlarmPlaying && (
@@ -290,23 +333,7 @@ export default function AdminPanel() {
             <span className="font-black">NOVO PEDIDO! CLIQUE PARA PARAR O ALERTA</span>
          </div>
        )}
-      {/* Sidebar - Backdrop for mobile */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-80 bg-slate-900 text-slate-400 p-8 flex flex-col gap-8 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-80 bg-slate-900 text-slate-400 p-8 flex flex-col gap-8 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="flex items-center justify-between lg:justify-start gap-4 px-2">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl shadow-lg shadow-orange-500/30 overflow-hidden flex items-center justify-center bg-orange-500 text-white font-bold text-xl">
@@ -323,14 +350,12 @@ export default function AdminPanel() {
         </div>
 
         <nav className="flex flex-col gap-2 flex-1 pt-4 overflow-y-auto">
-          <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Monitorando</p>
           <button onClick={()=>{setActiveTab('dashboard'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='dashboard'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <LayoutDashboard size={20}/> Dashboard
           </button>
           <button onClick={()=>{setActiveTab('orders'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='orders'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Clock size={20}/> Pedidos Ativos
           </button>
-          <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 mt-8">Gerenciamento</p>
           <button onClick={()=>{setActiveTab('catalog'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='catalog'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <PlusCircle size={20}/> Cardápio Digital
           </button>
@@ -356,199 +381,318 @@ export default function AdminPanel() {
       </aside>
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-20 lg:h-24 bg-white/70 backdrop-blur-xl border-b border-slate-200 px-6 lg:px-10 flex items-center justify-between sticky top-0 z-20">
+        <header className="h-24 bg-white/70 backdrop-blur-xl border-b border-slate-200 px-10 flex items-center justify-between sticky top-0 z-20">
             <div className="flex items-center gap-4">
                 <button className="lg:hidden p-2 text-slate-800 hover:bg-slate-50 rounded-xl" onClick={() => setIsMobileMenuOpen(true)}>
                     <Menu size={24} />
                 </button>
                 <div>
-                  <h1 className="text-xl lg:text-2xl font-black text-slate-800 capitalize">{activeTab}</h1>
+                  <h1 className="text-2xl font-black text-slate-800 capitalize">{activeTab}</h1>
                   <p className="text-[10px] font-bold text-slate-400 tracking-wide uppercase">PitDog SaaS Node</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 lg:gap-6">
-                <div className="flex items-center gap-2 bg-slate-50 px-3 lg:px-4 py-2 rounded-2xl border border-slate-100">
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
                     <span className={`w-2 h-2 rounded-full ${waStatus === 'CONNECTED' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                    <span className="hidden sm:inline text-[10px] font-black text-slate-500">{waStatus === 'CONNECTED' ? 'ROBÔ CONECTADO' : 'ROBÔ OFFLINE'}</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase">{waStatus === 'CONNECTED' ? 'ROBÔ ONLINE' : 'ROBÔ OFFLINE'}</span>
                 </div>
             </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-10 bg-slate-50/50">
+        <main className="flex-1 overflow-y-auto p-10 bg-slate-50/50">
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full">
-              {activeTab === 'dashboard' && (
-                <div className="space-y-10">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
-                    <div className="bg-white p-6 lg:p-8 rounded-[32px] shadow-sm border border-slate-100">
-                       <TrendingUp size={24} className="text-orange-500 mb-4"/>
-                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Vendas Hoje</p>
-                       <h3 className="text-2xl lg:text-3xl font-black text-slate-800">R$ {orders.reduce((acc,o)=>acc+o.total, 0).toFixed(2)}</h3>
-                    </div>
-                    <div className="bg-white p-6 lg:p-8 rounded-[32px] shadow-sm border border-slate-100">
-                       <Clock size={24} className="text-blue-500 mb-4"/>
-                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Pedidos Ativos</p>
-                       <h3 className="text-2xl lg:text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'PENDING').length}</h3>
-                    </div>
-                    <div className="bg-white p-6 lg:p-8 rounded-[32px] shadow-sm border border-slate-100">
-                       <Users size={24} className="text-indigo-500 mb-4"/>
-                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Clientes</p>
-                       <h3 className="text-2xl lg:text-3xl font-black text-slate-800">{customers.length}</h3>
-                    </div>
-                    <div className="bg-white p-6 lg:p-8 rounded-[32px] shadow-sm border border-slate-100">
-                       <CheckCircle2 size={24} className="text-green-500 mb-4"/>
-                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Concluídos</p>
-                       <h3 className="text-2xl lg:text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'DELIVERED').length}</h3>
+              {activeTab === 'catalog' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 relative">
+                   <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
+                      <h3 className="text-xl font-black mb-6 text-slate-800">Categorias</h3>
+                      <form onSubmit={addCategory} className="flex gap-2 mb-8">
+                         <input required placeholder="Nova Categoria..." className="flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" value={newCat} onChange={e=>setNewCat(e.target.value)} />
+                         <button className="bg-slate-900 text-white px-6 rounded-2xl font-black shadow-lg shadow-slate-900/20">+</button>
+                      </form>
+                    <div className="space-y-3">
+                       {categories.map(c => (
+                          <div 
+                            key={c.id} 
+                            onClick={() => setSelectedCategoryId(c.id)}
+                            className={`p-5 rounded-3xl cursor-pointer transition-all border ${selectedCategoryId === c.id ? 'bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/20' : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'}`}
+                          >
+                             <div className="flex justify-between items-center">
+                                <span className="font-black text-sm uppercase">{c.name}</span>
+                                <div onClick={(e) => { e.stopPropagation(); toggleCategory(c.id); }} className={`w-2 h-2 rounded-full ${c.active ? 'bg-green-400' : 'bg-slate-300'}`}></div>
+                             </div>
+                          </div>
+                       ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
-                     <div className="bg-white p-6 lg:p-10 rounded-[40px] shadow-sm border border-slate-100">
-                        <h3 className="text-xl font-black text-slate-800 mb-8">Pedidos Recentes</h3>
+                  <div className="lg:col-span-2 bg-white p-10 rounded-[40px] shadow-sm border border-slate-100 min-h-[500px]">
+                     <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h3 className="text-2xl font-black text-slate-800">Produtos</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase">{categories.find(c=>c.id===selectedCategoryId)?.name || 'Todos os itens'}</p>
+                        </div>
+                        {selectedCategoryId && (
+                            <button onClick={()=>setShowProductModal(true)} className="bg-orange-500 text-white px-6 py-3.5 rounded-2xl font-black text-xs shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all">
+                                + NOVO PRODUTO
+                            </button>
+                        )}
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
+                        {products.filter(p => !selectedCategoryId || p.category_id === selectedCategoryId).map(p => (
+                           <div key={p.id} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col hover:shadow-xl transition-all group">
+                              <div className="p-8 pb-4">
+                                 <div className="flex gap-6 mb-6">
+                                    <div className="w-24 h-24 bg-slate-100 rounded-[32px] overflow-hidden shadow-inner flex items-center justify-center border border-slate-50">
+                                        {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" /> : <PlusCircle className="text-slate-200" size={32}/>}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h5 className="font-black text-slate-800 text-base uppercase leading-tight">{p.name}</h5>
+                                            <button onClick={()=>toggleProduct(p.id)} className={`p-2 rounded-xl transition-all ${p.active ? 'text-green-500 bg-green-50' : 'text-slate-300 bg-slate-50'}`}>
+                                                <Power size={18} />
+                                            </button>
+                                        </div>
+                                        <p className="font-black text-green-600 text-xl mb-2">R$ {p.price.toFixed(2)}</p>
+                                    </div>
+                                 </div>
+                                 
+                                 <div className="bg-slate-50 rounded-3xl p-5 border border-slate-100">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionais / Extras</p>
+                                        <button onClick={()=>{setCurrentProductId(p.id); setShowExtraModal(true)}} className="text-[10px] font-black text-orange-500 hover:text-orange-600 px-3 py-1 bg-orange-50 rounded-lg">+ ADD NOVO</button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {p.extras?.map((ex:any) => (
+                                            <div key={ex.id} className="bg-white pl-4 pr-2 py-2 rounded-full border border-slate-100 text-[10px] font-bold text-slate-600 flex items-center gap-2 group/extra">
+                                                <span>{ex.name} (+ R${ex.price.toFixed(2)})</span>
+                                                <button onClick={()=>deleteExtra(ex.id)} className="w-6 h-6 flex items-center justify-center bg-red-50 text-red-400 rounded-full opacity-0 group-hover/extra:opacity-100 transition-opacity"><Trash2 size={12}/></button>
+                                            </div>
+                                        ))}
+                                        {(!p.extras || p.extras.length === 0) && <p className="text-[10px] text-slate-300 font-medium py-1 italic">Nenhum adicional configurado</p>}
+                                    </div>
+                                 </div>
+                              </div>
+                              <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 mt-auto flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={()=>deleteProduct(p.id)} className="text-red-400 hover:text-red-500 transition-colors flex items-center gap-2 text-xs font-bold">
+                                      <Trash2 size={16}/> EXCLUIR ITEM
+                                  </button>
+                              </div>
+                           </div>
+                        ))}
+                        {selectedCategoryId && products.filter(p => !selectedCategoryId || p.category_id === selectedCategoryId).length === 0 && (
+                            <div className="col-span-full py-20 text-center opacity-30">
+                                <Package size={64} className="mx-auto mb-6 text-slate-300"/>
+                                <p className="font-black text-xl text-slate-400">Essa categoria ainda está vazia.</p>
+                                <p className="text-slate-400 text-sm mt-2">Clique no botão acima para adicionar o primeiro hambúrguer!</p>
+                            </div>
+                        )}
+                        {!selectedCategoryId && <div className="col-span-full py-20 text-center opacity-30 font-black text-slate-400">SELECIONE UMA CATEGORIA PARA VER OS PRODUTOS</div>}
+                     </div>
+                  </div>
+
+                  {showProductModal && (
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+                          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} className="bg-white w-full max-w-lg rounded-[48px] p-12 shadow-2xl relative">
+                              <button onClick={()=>setShowProductModal(false)} className="absolute top-10 right-10 text-slate-300 hover:text-slate-800 p-2"><X/></button>
+                              <h3 className="text-3xl font-black text-slate-800 mb-2">Novo Item</h3>
+                              <p className="text-slate-400 text-sm mb-10 font-medium">Cadastre os detalhes do seu PitDog clássico.</p>
+                              
+                              <form onSubmit={addProduct} className="space-y-6">
+                                  <div className="grid grid-cols-2 gap-5">
+                                      <div className="col-span-2">
+                                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">Nome do Produto</label>
+                                          <input required value={newProduct.name} onChange={e=>setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-slate-50 p-5 rounded-[24px] border border-slate-200 focus:border-orange-500 outline-none font-bold" placeholder="Ex: X-Salada Especial" />
+                                      </div>
+                                      <div>
+                                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">Preço de Venda</label>
+                                          <input required type="number" step="0.01" value={newProduct.price} onChange={e=>setNewProduct({...newProduct, price: parseFloat(e.target.value)})} className="w-full bg-slate-50 p-5 rounded-[24px] border border-slate-200 focus:border-orange-500 outline-none font-bold" />
+                                      </div>
+                                      <div>
+                                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">URL da Foto</label>
+                                          <input value={newProduct.image_url} onChange={e=>setNewProduct({...newProduct, image_url: e.target.value})} className="w-full bg-slate-50 p-5 rounded-[24px] border border-slate-200 focus:border-orange-500 outline-none font-bold" placeholder="https://..." />
+                                      </div>
+                                      <div className="col-span-2">
+                                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">Ingredientes / Descrição</label>
+                                          <textarea value={newProduct.description} onChange={e=>setNewProduct({...newProduct, description: e.target.value})} className="w-full bg-slate-50 p-5 rounded-[24px] border border-slate-200 focus:border-orange-500 outline-none font-bold h-24" placeholder="Hamburguer 150g, alface, tomate, maionese artesanal..." />
+                                      </div>
+                                  </div>
+                                  <button className="w-full bg-orange-500 text-white py-6 rounded-3xl font-black shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition-all text-sm tracking-widest uppercase">
+                                      CADASTRAR ITEM AGORA
+                                  </button>
+                              </form>
+                          </motion.div>
+                      </div>
+                  )}
+
+                  {showExtraModal && (
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+                          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} className="bg-white w-full max-w-sm rounded-[48px] p-12 shadow-2xl relative">
+                              <button onClick={()=>setShowExtraModal(false)} className="absolute top-10 right-10 text-slate-300 hover:text-slate-800 p-2"><X/></button>
+                              <h3 className="text-2xl font-black text-slate-800 mb-2">Adicional</h3>
+                              <p className="text-slate-400 text-xs mb-8 font-medium">Configure extras para este produto.</p>
+                              
+                              <form onSubmit={addExtra} className="space-y-6">
+                                  <div>
+                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">Nome do Extra</label>
+                                      <input required value={newExtra.name} onChange={e=>setNewExtra({...newExtra, name: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-200 font-bold" placeholder="Ex: + Bacon" />
+                                  </div>
+                                  <div>
+                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">Preço (R$)</label>
+                                      <input required type="number" step="0.01" value={newExtra.price} onChange={e=>setNewExtra({...newExtra, price: parseFloat(e.target.value)})} className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-200 font-bold" />
+                                  </div>
+                                  <button className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all text-xs tracking-widest">
+                                      CONFIRMAR ADICIONAL
+                                  </button>
+                              </form>
+                          </motion.div>
+                      </div>
+                  )}
+                </div>
+               )}
+
+              {activeTab === 'dashboard' && (
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                       <TrendingUp size={24} className="text-orange-500 mb-4"/>
+                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Vendas Hoje</p>
+                       <h3 className="text-3xl font-black text-slate-800">R$ {orders.reduce((acc,o)=>acc+o.total, 0).toFixed(2)}</h3>
+                    </div>
+                    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                       <Clock size={24} className="text-blue-500 mb-4"/>
+                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Pedidos Ativos</p>
+                       <h3 className="text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'PENDING').length}</h3>
+                    </div>
+                    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                       <Users size={24} className="text-indigo-500 mb-4"/>
+                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Clientes</p>
+                       <h3 className="text-3xl font-black text-slate-800">{customers.length}</h3>
+                    </div>
+                    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                       <CheckCircle2 size={24} className="text-green-500 mb-4"/>
+                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Concluídos</p>
+                       <h3 className="text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'DELIVERED').length}</h3>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                     <div className="bg-white p-10 rounded-[48px] shadow-sm border border-slate-100">
+                        <h3 className="text-xl font-black text-slate-800 mb-8 font-bold uppercase tracking-tight">Pedidos Recentes</h3>
                         <div className="space-y-4">
                            {orders.slice(0,5).map(o => (
-                              <div key={o.id} className="p-4 lg:p-5 bg-slate-50 flex items-center justify-between rounded-3xl border border-slate-100">
+                              <div key={o.id} className="p-5 bg-slate-50 flex items-center justify-between rounded-3xl border border-slate-100">
                                  <div>
-                                    <p className="font-bold text-slate-800 text-sm lg:text-base">Pedido #{o.id.slice(-4)}</p>
-                                    <p className="text-[10px] lg:text-xs font-medium text-slate-500">{new Date(o.created_at).toLocaleTimeString()}</p>
+                                    <p className="font-bold text-slate-800">Pedido #{o.id.slice(-4)}</p>
+                                    <p className="text-[10px] font-bold text-slate-400">{new Date(o.created_at).toLocaleTimeString()}</p>
                                  </div>
-                                 <p className="font-black text-slate-800 text-sm lg:text-base">R$ {o.total.toFixed(2)}</p>
+                                 <p className="font-black text-slate-800">R$ {o.total.toFixed(2)}</p>
                               </div>
                            ))}
                         </div>
                      </div>
-                     <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-6 lg:p-10 rounded-[40px] shadow-lg text-white">
-                        <h4 className="text-xl lg:text-2xl font-black mb-4">Link do Pedido</h4>
-                        <div className="bg-white/10 p-4 rounded-xl border border-white/20 font-mono break-all text-xs lg:text-sm mb-4">
-                           {window.location.origin}/catalogo/{user?.slug}
+                     <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-10 rounded-[48px] shadow-2xl text-white relative overflow-hidden group">
+                        <div className="relative z-10">
+                            <h4 className="text-3xl font-black mb-4 tracking-tighter">Link do Seu<br/>Cardápio Digital</h4>
+                            <div className="bg-white/10 p-5 rounded-2xl border border-white/20 font-mono break-all text-sm mb-6 backdrop-blur-md">
+                                {window.location.origin}/catalogo/{user?.slug}
+                            </div>
+                            <button onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/catalogo/${user?.slug}`);
+                                toast.success("Link copiado!");
+                            }} className="w-full bg-white text-indigo-600 font-black py-4 rounded-2xl shadow-xl hover:scale-[1.02] transition-all">COPIAR LINK AGORA</button>
                         </div>
-                        <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/catalogo/${user?.slug}`)} className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl">Copiar Link</button>
+                        <LayoutDashboard size={150} className="absolute -right-10 -bottom-10 opacity-10 group-hover:rotate-12 transition-transform" />
                      </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'orders' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
                    {orders.map(o => (
-                      <div key={o.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                         <div className="p-8">
-                            <h4 className="text-xl font-black text-slate-800 mb-4">Pedido #{o.id.slice(-6)}</h4>
-                            <div className="space-y-2 mb-6">
+                      <div key={o.id} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col hover:shadow-xl transition-all">
+                         <div className="p-8 pb-4">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h4 className="text-xl font-black text-slate-800">Pedido #{o.id.slice(-6)}</h4>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(o.created_at).toLocaleTimeString()}</p>
+                                </div>
+                                <span className="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black uppercase tracking-widest">{o.status}</span>
+                            </div>
+                            <div className="space-y-3 mb-8 bg-slate-50 p-5 rounded-3xl border border-slate-100 shadow-inner">
                                {o.items?.map((it:any) => (
-                                   <div key={it.id} className="text-sm text-slate-500 flex justify-between">
-                                       <span>{it.quantity}x {it.product.name}</span>
-                                       <span className="font-bold">R$ {it.unit_price.toFixed(2)}</span>
+                                   <div key={it.id} className="text-sm text-slate-600 flex justify-between items-center bg-white/50 p-3 rounded-xl">
+                                       <span className="font-bold">{it.quantity}x {it.product.name}</span>
+                                       <span className="font-black text-slate-800">R$ {it.unit_price.toFixed(2)}</span>
                                    </div>
                                ))}
                             </div>
-                            <div className="flex justify-between text-lg font-black text-slate-800 border-t pt-4">
+                            <div className="flex justify-between text-xl font-black text-slate-800 border-t border-slate-100 pt-5">
                                 <span>Total</span>
-                                <span>R$ {o.total.toFixed(2)}</span>
+                                <span className="text-2xl text-orange-500">R$ {o.total.toFixed(2)}</span>
                             </div>
                          </div>
-                         <div className="p-6 bg-slate-50 flex gap-3">
+                         <div className="p-6 bg-slate-50 flex gap-3 mt-auto">
                             {o.status === 'PENDING' && (
-                                <button onClick={()=>updateOrderStatus(o.id, 'PREPARING')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold">Aceitar</button>
+                                <button onClick={()=>updateOrderStatus(o.id, 'PREPARING')} className="flex-1 bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all">ACEITAR AGORA</button>
                             )}
                             {o.status === 'PREPARING' && (
-                                 <button onClick={()=>updateOrderStatus(o.id, 'DELIVERED')} className="flex-1 bg-orange-600 text-white py-3 rounded-xl font-bold">Enviar Entrega 🛵</button>
+                                 <button onClick={()=>updateOrderStatus(o.id, 'DELIVERED')} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                     <Truck size={18}/> ENVIAR ENTREGA
+                                 </button>
+                            )}
+                            {o.status === 'DELIVERED' && (
+                                <div className="flex-1 text-center py-4 text-green-600 font-black text-xs uppercase tracking-widest">Produto Entregue</div>
                             )}
                          </div>
                       </div>
                    ))}
-                </div>
-              )}
-
-              {activeTab === 'catalog' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                   <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-                      <h3 className="text-xl font-black mb-6 text-slate-800">Categorias</h3>
-                      <form onSubmit={addCategory} className="flex gap-2 mb-8">
-                         <input required className="flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" value={newCat} onChange={e=>setNewCat(e.target.value)} />
-                         <button className="bg-slate-900 text-white p-4 rounded-2xl">+</button>
-                      </form>
-                    <div className="space-y-3">
-                       {categories.map(c => (
-                          <div key={c.id} className="p-4 rounded-2xl bg-slate-50 font-bold border border-slate-100 flex justify-between items-center group">
-                             <span className={c.active ? '' : 'text-slate-400 line-through'}>{c.name}</span>
-                             <button onClick={()=>toggleCategory(c.id)} className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${c.active ? 'bg-green-100 text-green-600 hover:bg-orange-100 hover:text-orange-600' : 'bg-slate-200 text-slate-500 hover:bg-green-100 hover:text-green-600'}`}>
-                                {c.active ? 'Ativo' : 'Pausado'}
-                             </button>
-                          </div>
-                       ))}
-                    </div>
-                 </div>
-                 <div className="lg:col-span-2 bg-white p-6 lg:p-10 rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
-                    <h3 className="text-xl font-black mb-6">Produtos e Disponibilidade</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                       {products.map(p => (
-                          <div key={p.id} className={`p-4 rounded-3xl border transition-all flex items-center justify-between ${p.active ? 'border-slate-50 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
-                             <div className="flex gap-4 items-center">
-                                <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
-                                    {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" /> : <PlusCircle className="text-slate-200"/>}
-                                </div>
-                                <div>
-                                   <h5 className="font-bold text-slate-800 text-sm">{p.name}</h5>
-                                   <p className="font-black text-green-600 text-sm">R$ {p.price.toFixed(2)}</p>
-                                </div>
-                             </div>
-                             <button onClick={()=>toggleProduct(p.id)} className={`p-2.5 rounded-xl border transition-all ${p.active ? 'bg-green-50 text-green-600 border-green-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100' : 'bg-slate-200 text-slate-500 border-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-100'}`}>
-                                <Power size={18} />
-                             </button>
-                          </div>
-                       ))}
-                    </div>
-                 </div>
+                   {orders.length === 0 && <div className="col-span-full py-20 text-center font-black text-slate-300">NENHUM PEDIDO ATIVO NO MOMENTO</div>}
                 </div>
               )}
 
               {activeTab === 'chats' && (
-                <div className="bg-white rounded-[32px] lg:rounded-[40px] shadow-sm border border-slate-100 h-[calc(100vh-120px)] lg:h-[calc(100vh-250px)] flex flex-col lg:flex-row overflow-hidden">
-                    <div className={`w-full lg:w-80 border-r border-slate-100 flex flex-col ${activeChatJid ? 'hidden lg:flex' : 'flex'}`}>
-                        <div className="p-6 lg:p-8 border-b border-slate-50 font-black flex justify-between items-center">
-                          <span>Clientes</span>
-                          <span className="lg:hidden text-[10px] bg-slate-100 px-2 py-1 rounded-md">Toque para abrir</span>
-                        </div>
+                <div className="bg-white rounded-[48px] shadow-sm border border-slate-100 h-[calc(100vh-250px)] flex flex-col lg:flex-row overflow-hidden">
+                    <div className="w-full lg:w-96 border-r border-slate-50 flex flex-col">
+                        <div className="p-8 border-b border-slate-50 font-black text-slate-800 uppercase tracking-widest text-xs">Conversas Ativas</div>
                         <div className="flex-1 overflow-y-auto">
                             {customers.map(c => (
-                                <div key={c.id} onClick={()=>loadChat(c)} className={`p-5 lg:p-6 border-b border-slate-50 cursor-pointer transition-colors ${activeChatJid === c.whatsapp_jid ? 'bg-orange-50' : 'hover:bg-slate-50'}`}>
-                                    <p className="font-bold text-slate-800">{c.name}</p>
-                                    <p className="text-[10px] text-slate-400 mt-1">{c.whatsapp_jid}</p>
+                                <div key={c.id} onClick={()=>loadChat(c)} className={`p-6 border-b border-slate-50 cursor-pointer transition-all ${activeChatJid === c.whatsapp_jid ? 'bg-orange-50' : 'hover:bg-slate-50'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <p className="font-black text-slate-800 uppercase tracking-tight">{c.name}</p>
+                                        <p className="text-[9px] font-bold text-slate-400">{c.whatsapp_jid.split('@')[0]}</p>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Status: Atendido</p>
                                 </div>
                             ))}
                         </div>
                     </div>
-                    <div className={`flex-1 flex flex-col ${!activeChatJid ? 'hidden lg:flex' : 'flex'}`}>
+                    <div className="flex-1 flex flex-col bg-slate-50/20">
                         {activeChatJid ? (
                             <>
-                                <div className="p-4 lg:hidden border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
-                                   <button onClick={() => setActiveChatJid('')} className="p-2 bg-white rounded-xl shadow-sm border border-slate-200">
-                                      <X size={18} />
-                                   </button>
-                                   <p className="font-bold text-slate-800">{customers.find(c => c.whatsapp_jid === activeChatJid)?.name}</p>
-                                </div>
-                                <div className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-4 bg-slate-50/20">
+                                <div className="flex-1 p-10 overflow-y-auto space-y-6 scrollbar-hide">
                                     {chatMessages.map((m, idx) => (
                                         <div key={idx} className={`flex ${m.is_from_me ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`p-4 rounded-2xl max-w-[85%] lg:max-w-md ${m.is_from_me ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-white border border-slate-100 text-slate-800 shadow-sm'}`}>
-                                                <p className="text-sm leading-relaxed">{m.text}</p>
-                                                <p className={`text-[9px] mt-1.5 opacity-60 ${m.is_from_me ? 'text-white' : 'text-slate-400'}`}>
+                                            <div className={`p-5 rounded-3xl max-w-lg shadow-sm ${m.is_from_me ? 'bg-orange-500 text-white' : 'bg-white border border-slate-100 text-slate-800'}`}>
+                                                <p className="text-sm leading-relaxed font-bold">{m.text}</p>
+                                                <p className={`text-[9px] mt-2 font-black opacity-50 ${m.is_from_me ? 'text-white' : 'text-slate-400'}`}>
                                                   {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                <form onSubmit={handleSendMessage} className="p-4 lg:p-6 border-t bg-white flex gap-2">
-                                    <input value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Digite sua mensagem..." className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-200 outline-none focus:border-orange-500 transition-colors" />
-                                    <button className="bg-orange-500 text-white px-6 lg:px-8 rounded-xl font-black hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30">ENVIAR</button>
+                                <form onSubmit={handleSendMessage} className="p-8 bg-white border-t border-slate-50 flex gap-4">
+                                    <input value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Escreva sua mensagem aqui..." className="flex-1 bg-slate-50 px-6 py-4 rounded-2xl border border-slate-200 outline-none focus:border-orange-500 font-bold" />
+                                    <button className="bg-orange-500 text-white px-10 rounded-2xl font-black shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">ENVIAR</button>
                                 </form>
                             </>
                         ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-300 font-bold p-10 text-center">
-                                <Bell size={40} className="mb-4 opacity-20"/>
-                                <p>Selecione um cliente para<br/>iniciar o atendimento</p>
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-300 font-black py-20 text-center uppercase tracking-widest">
+                                <PlusCircle size={60} className="mb-6 opacity-10"/>
+                                <p>Selecione um cliente para<br/>iniciar o atendimento pelo robô</p>
                             </div>
                         )}
                     </div>
@@ -556,22 +700,20 @@ export default function AdminPanel() {
               )}
 
               {activeTab === 'drivers' && (
-                <div className="space-y-6 lg:space-y-8">
-                   <div className="bg-indigo-600 p-6 lg:p-10 rounded-[32px] lg:rounded-[40px] text-white shadow-xl relative overflow-hidden">
+                <div className="space-y-10">
+                   <div className="bg-slate-900 p-12 rounded-[48px] text-white shadow-2xl relative overflow-hidden group">
                       <div className="relative z-10">
-                        <h3 className="text-2xl lg:text-3xl font-black mb-2">Rede Entrega Global 🛵</h3>
-                        <p className="opacity-80 text-sm lg:text-base">Seu estabelecimento está conectado à rede central de pilotos.</p>
+                        <h3 className="text-4xl font-black mb-2 tracking-tighter">Flux Drivers Global 🌐</h3>
+                        <p className="opacity-60 text-lg font-medium max-w-md">Gerencie sua rede de entregas em tempo real com rastreamento via WebSocket.</p>
                       </div>
-                      <div className="absolute -right-10 -bottom-10 opacity-20 scale-150">
-                        <Truck size={120} />
-                      </div>
+                      <Truck size={180} className="absolute -right-10 -bottom-10 opacity-10 group-hover:translate-x-4 transition-transform text-orange-500" />
                    </div>
-                   <div className="bg-white p-6 lg:p-8 rounded-[32px] lg:rounded-[40px] border border-slate-100 shadow-sm">
-                      <h4 className="font-black text-lg lg:text-xl mb-6 flex items-center gap-2"><MapIcon/> Mapa Real-Time</h4>
-                      <div className="h-[300px] lg:h-[400px] bg-slate-50 rounded-3xl overflow-hidden border">
+                   <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+                      <h4 className="font-black text-xl mb-8 flex items-center gap-3"><MapIcon className="text-orange-500"/> Visualização do Campo</h4>
+                      <div className="h-[500px] bg-slate-50 rounded-[40px] overflow-hidden border border-slate-100 shadow-inner translate-z-0">
                          {isLoaded && mapCenter ? (
                             <GoogleMap
-                               mapContainerStyle={mapContainerStyle}
+                               mapContainerStyle={{width:'100%', height:'100%'}}
                                center={Object.values(activeDriversLocations)[0] as any || mapCenter}
                                zoom={14}
                                options={{ styles: uberMapStyle, disableDefaultUI: true, zoomControl: true }}
@@ -584,8 +726,8 @@ export default function AdminPanel() {
                                        <div key={id}>
                                            <Marker 
                                              position={driverLoc} 
-                                             label={{ text: driverLoc.name || 'Piloto', color: 'orange', fontWeight: 'bold' }}
-                                             icon={{ url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", scaledSize: new window.google.maps.Size(30,30) }} 
+                                             label={{ text: driverLoc.name || 'Piloto', color: '#f97316', fontWeight: '900', fontSize: '12px' }}
+                                             icon={{ url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", scaledSize: new window.google.maps.Size(40,40) }} 
                                            />
                                            {activeOrder && (
                                                <AdminRouteRenderer 
@@ -597,152 +739,169 @@ export default function AdminPanel() {
                                    );
                                })}
                             </GoogleMap>
-                         ) : <div className="h-full flex items-center justify-center font-bold text-slate-300 animate-pulse text-sm">Carregando mapa...</div>}
+                         ) : <div className="h-full flex items-center justify-center font-black text-slate-300 animate-pulse uppercase tracking-widest text-xs">Sincronizando satélite...</div>}
                       </div>
                    </div>
                 </div>
               )}
 
               {activeTab === 'reports' && (
-                  <div className="space-y-10">
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                           <BarChart3 size={32} className="text-orange-500 mb-4"/>
-                           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Vendas (Mensal)</p>
-                           <h3 className="text-3xl font-black text-slate-800">R$ {reportStats?.totalRevenue?.toFixed(2) || '0.00'}</h3>
-                        </div>
-                        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                           <PieChart size={32} className="text-indigo-500 mb-4"/>
-                           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Total Pedidos</p>
-                           <h3 className="text-3xl font-black text-slate-800">{reportStats?.totalOrders || 0}</h3>
-                        </div>
-                        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                           <CheckCircle2 size={32} className="text-green-500 mb-4"/>
-                           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Entregas Sucesso</p>
-                           <h3 className="text-3xl font-black text-slate-800">{reportStats?.delivered || 0}</h3>
-                        </div>
-                     </div>
+                <div className="space-y-12">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                       <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+                          <BarChart3 size={32} className="text-orange-500 mb-4"/>
+                          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Vendas Acumuladas</p>
+                          <h3 className="text-4xl font-black text-slate-800">R$ {reportStats?.totalRevenue?.toFixed(2) || '0.00'}</h3>
+                       </div>
+                       <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+                          <PieChart size={32} className="text-indigo-500 mb-4"/>
+                          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Fluxo de Pedidos</p>
+                          <h3 className="text-4xl font-black text-slate-800">{reportStats?.totalOrders || 0}</h3>
+                       </div>
+                       <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+                          <CheckCircle2 size={32} className="text-green-500 mb-4"/>
+                          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Entregas Finalizadas</p>
+                          <h3 className="text-4xl font-black text-slate-800">{reportStats?.delivered || 0}</h3>
+                       </div>
+                   </div>
+                   
+                   <div className="bg-white p-12 rounded-[56px] border border-slate-100 shadow-sm overflow-hidden">
+                      <h3 className="text-2xl font-black text-slate-800 mb-10 tracking-tight flex items-center gap-3">
+                          Relatório de Ganha-pão <span className="text-slate-300 font-medium font-sans">| Performance Diária</span>
+                      </h3>
+                      <div className="h-[300px] flex items-end gap-5 overflow-x-auto pb-6 scrollbar-hide">
+                         {reportStats?.daily && Object.keys(reportStats.daily).sort().map(day => (
+                            <div key={day} className="flex-1 min-w-[60px] flex flex-col items-center gap-4 group">
+                               <div 
+                                 className="w-full bg-orange-500 rounded-3xl transition-all group-hover:bg-orange-600 relative cursor-pointer" 
+                                 style={{ height: `${Math.max(20, (reportStats.daily[day] / Math.max(1, reportStats.totalRevenue || 1)) * 250)}px` }}
+                               >
+                                   <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all font-black whitespace-nowrap z-10 shadow-xl border border-white/10">
+                                      R${reportStats.daily[day].toFixed(2)}
+                                   </div>
+                               </div>
+                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter whitespace-nowrap">{day.split('-')[2]}/{day.split('-')[1]}</p>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
 
-                     <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-                        <h3 className="text-xl font-black mb-8">Performance por Dia (Ganha-pão)</h3>
-                        <div className="h-[250px] flex items-end gap-2 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                           {reportStats?.daily && Object.keys(reportStats.daily).sort().map(day => (
-                              <div key={day} className="flex-1 min-w-[40px] flex flex-col items-center gap-2 group">
-                                 <div 
-                                   className="w-full bg-orange-500 rounded-t-xl transition-all group-hover:bg-orange-600 relative" 
-                                   style={{ height: `${Math.max(10, (reportStats.daily[day] / Math.max(1, reportStats.totalRevenue || 1)) * 200)}px` }}
-                                 >
-                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                        R${reportStats.daily[day].toFixed(0)}
-                                     </div>
-                                 </div>
-                                 <p className="text-[10px] font-bold text-slate-400 truncate w-full text-center">{day.split('-')[2]}/{day.split('-')[1]}</p>
-                              </div>
-                           ))}
-                           {!reportStats?.daily && <p className="w-full text-center text-slate-400 font-bold py-20">Nenhum dado para exibir ainda.</p>}
-                        </div>
-                     </div>
-                  </div>
-               )}
-
-               {activeTab === 'marketing' && (
-                  <div className="space-y-10">
-                     <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-                        <h3 className="text-xl font-black mb-8 flex items-center gap-2 font-bold"><Ticket size={24}/> Criar Novo Cupom de Desconto</h3>
-                        <form onSubmit={createCoupon} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                           <input placeholder="Ex: PITDOG20" required className="p-4 rounded-2xl bg-slate-50 border border-slate-200 uppercase font-bold" value={newCoupon.code} onChange={e=>setNewCoupon({...newCoupon, code: e.target.value})} />
-                           <select className="p-4 rounded-2xl bg-slate-50 border border-slate-200 font-bold" value={newCoupon.type} onChange={e=>setNewCoupon({...newCoupon, type: e.target.value})}>
-                              <option value="PERCENT">Porcentagem (%)</option>
-                              <option value="FIXED">Valor Fixo (R$)</option>
-                           </select>
-                           <input type="number" placeholder="Valor" required className="p-4 rounded-2xl bg-slate-50 border border-slate-200 font-bold" value={newCoupon.value} onChange={e=>setNewCoupon({...newCoupon, value: parseFloat(e.target.value)})} />
-                           <button className="bg-orange-500 text-white p-4 rounded-2xl font-black hover:bg-orange-600 transition-all">CRIAR CUPOM</button>
+              {activeTab === 'marketing' && (
+                  <div className="space-y-12">
+                     <div className="bg-white p-12 rounded-[56px] shadow-sm border border-slate-100">
+                        <h3 className="text-2xl font-black mb-10 flex items-center gap-3 font-bold uppercase tracking-tight text-slate-800"><Ticket size={32} className="text-orange-500"/> Novo Cupom Promocional</h3>
+                        <form onSubmit={createCoupon} className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                           <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Código do Cupom</label>
+                             <input placeholder="Ex: PITDOG20" required className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-200 uppercase font-black text-orange-600 outline-none focus:border-orange-500" value={newCoupon.code} onChange={e=>setNewCoupon({...newCoupon, code: e.target.value})} />
+                           </div>
+                           <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Tipo de Desconto</label>
+                             <select className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-200 font-black outline-none appearance-none" value={newCoupon.type} onChange={e=>setNewCoupon({...newCoupon, type: e.target.value})}>
+                                <option value="PERCENT">Porcentagem (%)</option>
+                                <option value="FIXED">Valor Fixo (R$)</option>
+                             </select>
+                           </div>
+                           <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Valor</label>
+                             <input type="number" placeholder="0" required className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-200 font-black" value={newCoupon.value} onChange={e=>setNewCoupon({...newCoupon, value: parseFloat(e.target.value)})} />
+                           </div>
+                           <div className="flex items-end">
+                             <button className="w-full bg-slate-900 text-white p-5 rounded-3xl font-black shadow-xl hover:bg-slate-800 transition-all uppercase text-xs tracking-widest">Ativar Cupom</button>
+                           </div>
                         </form>
                      </div>
 
-                     <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-                        <h3 className="text-xl font-black mb-8 font-bold">Cupons Ativos</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     <div className="bg-white p-12 rounded-[56px] shadow-sm border border-slate-100">
+                        <h3 className="text-2xl font-black mb-10 text-slate-800 uppercase tracking-tight">Campanhas Ativas</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                            {coupons.map(c => (
-                              <div key={c.id} className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 relative group overflow-hidden">
-                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={()=>deleteCoupon(c.id)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100"><Trash2 size={16}/></button>
+                              <div key={c.id} className="p-10 bg-slate-900 rounded-[48px] relative group overflow-hidden shadow-2xl">
+                                 <div className="absolute top-8 right-8 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                    <button onClick={()=>deleteCoupon(c.id)} className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={18}/></button>
                                  </div>
-                                 <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">CÓDIGO</p>
-                                 <h4 className="text-2xl font-black text-slate-800 mb-4">{c.code}</h4>
-                                 <div className="flex justify-between items-end">
-                                    <div>
-                                       <p className="text-[10px] font-bold text-slate-400 uppercase">Desconto</p>
-                                       <p className="font-black text-slate-700">{c.type==='PERCENT'?`${c.value}%`:`R$ ${c.value.toFixed(2)}`}</p>
-                                    </div>
-                                    <div className="text-right">
-                                       <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
-                                       <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-bold">ATIVO</span>
+                                 <div className="relative z-10">
+                                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-4">DESCONTO ATIVO ✨</p>
+                                    <h4 className="text-4xl font-black text-white mb-8 tracking-tighter">{c.code}</h4>
+                                    <div className="flex justify-between items-end border-t border-white/10 pt-8">
+                                       <div>
+                                          <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Impacto</p>
+                                          <p className="text-2xl font-black text-white">{c.type==='PERCENT'?`${c.value}% OFF`:`R$ ${c.value.toFixed(2)}`}</p>
+                                       </div>
+                                       <div className="text-right">
+                                          <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Status</p>
+                                          <span className="px-3 py-1 bg-green-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">Online</span>
+                                       </div>
                                     </div>
                                  </div>
+                                 <Ticket size={120} className="absolute -left-10 -bottom-10 text-white opacity-[0.03] rotate-12" />
                               </div>
                            ))}
-                           {coupons.length === 0 && <p className="col-span-full py-10 text-center text-slate-400 italic font-medium">Você ainda não criou nenhum cupom promocional.</p>}
                         </div>
                      </div>
                   </div>
-               )}
+              )}
 
-               {activeTab === 'settings' && (
-                 <div className="max-w-4xl mx-auto space-y-8">
-                    <div className="bg-white p-8 lg:p-10 rounded-[40px] shadow-sm border border-slate-100">
-                        <h3 className="text-xl font-black mb-8 text-slate-800 flex items-center gap-2"><Settings size={20}/> Perfil do Estabelecimento</h3>
-                        
-                        <form onSubmit={updateStoreInfo} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
+              {activeTab === 'settings' && (
+                 <div className="max-w-4xl mx-auto space-y-12 h-screen">
+                    <div className="bg-white p-12 rounded-[56px] shadow-sm border border-slate-100">
+                        <h3 className="text-2xl font-black mb-10 text-slate-800 flex items-center gap-3"><Settings size={28} className="text-orange-500"/> Identidade da Marca</h3>
+                        <form onSubmit={updateStoreInfo} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div className="space-y-6">
                                     <div>
-                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">Nome da Hamburgueria / PitDog</label>
-                                        <input 
-                                          value={storeName} 
-                                          onChange={e=>setStoreName(e.target.value)} 
-                                          className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-200 outline-none focus:border-orange-500 transition-colors font-bold"
-                                        />
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2 block">Nome que Aparece no Cardápio</label>
+                                        <input value={storeName} onChange={e=>setStoreName(e.target.value)} className="w-full bg-slate-50 p-5 rounded-3xl border border-slate-200 outline-none focus:border-orange-500 font-black text-lg" />
                                     </div>
-                                    <div className="p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-200 flex flex-col items-center text-center">
-                                       <div className="w-20 h-20 bg-white rounded-2xl shadow-sm mb-4 flex items-center justify-center overflow-hidden border border-slate-100">
-                                          {logoUrl ? <img src={logoUrl} alt="Preview" className="w-full h-full object-cover" /> : <PlusCircle className="text-slate-200"/>}
+                                    <div className="p-8 bg-slate-50 rounded-[40px] border border-dashed border-slate-200 flex flex-col items-center text-center group cursor-pointer hover:bg-slate-100 transition-all">
+                                       <div className="w-24 h-24 bg-white rounded-3xl shadow-xl mb-6 flex items-center justify-center overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform">
+                                          {logoUrl ? <img src={logoUrl} alt="Preview" className="w-full h-full object-cover" /> : <PlusCircle className="text-slate-200" size={32}/>}
                                        </div>
-                                       <label className="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-800 transition-all">
-                                          {isUploading ? 'Enviando...' : 'Carregar Logo'}
+                                       <label className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase cursor-pointer hover:bg-orange-500 transition-colors shadow-lg shadow-slate-900/20">
+                                          {isUploading ? 'ENVIANDO...' : 'Trocar Logotipo'}
                                           <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
                                        </label>
-                                       <p className="text-[10px] text-slate-400 mt-2 font-medium">PNG ou JPG. Recomendado 512x512px.</p>
                                     </div>
                                 </div>
-                                <div className="bg-orange-50 p-8 rounded-[32px] border border-orange-100 flex flex-col justify-center">
-                                    <h4 className="font-bold text-orange-900 mb-2">Dica de Branding</h4>
-                                    <p className="text-sm text-orange-800/70 leading-relaxed">Uma logo bem definida e um nome cativante ajudam na retenção de clientes no seu cardápio digital.</p>
+                                <div className="bg-orange-600 p-12 rounded-[48px] text-white flex flex-col justify-center relative overflow-hidden group">
+                                    <div className="relative z-10">
+                                        <h4 className="text-2xl font-black mb-4 tracking-tighter">Dica de Sucesso 🚀</h4>
+                                        <p className="text-orange-100 text-sm leading-relaxed font-bold">Logos redondas ou quadradas funcionam melhor no chat do WhatsApp e na vitrine do seu cardápio digital.</p>
+                                    </div>
+                                    <PlusCircle size={150} className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"/>
                                 </div>
                             </div>
-                            <div className="pt-4 border-t border-slate-50">
-                                <button disabled={isUpdating} className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all disabled:opacity-50">
-                                    {isUpdating ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+                            <div className="pt-8 border-t border-slate-50">
+                                <button disabled={isUpdating} className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black shadow-2xl shadow-orange-500/40 hover:bg-orange-600 transition-all disabled:opacity-50 text-xs tracking-widest uppercase">
+                                    {isUpdating ? 'PROCESSANDO...' : 'SALVAR IDENTIDADE'}
                                 </button>
                             </div>
                         </form>
                     </div>
 
-                    <div className="bg-white p-8 lg:p-10 rounded-[40px] shadow-sm border border-slate-100 text-center">
-                        <QrCode size={40} className="mx-auto text-green-500 mb-4"/>
-                        <h3 className="text-xl font-black mb-2">Conexão WhatsApp</h3>
-                        <p className="text-sm text-slate-400 mb-8 max-w-xs mx-auto">Mantenha seu robô conectado para enviar atualizações de pedidos automaticamente.</p>
+                    <div className="bg-slate-900 p-12 rounded-[56px] shadow-2xl text-center relative overflow-hidden group">
+                        <QrCode size={120} className="mx-auto text-green-500 mb-6 opacity-80 group-hover:scale-110 transition-transform"/>
+                        <h3 className="text-3xl font-black mb-4 text-white tracking-tighter">Configuração do Robô</h3>
+                        <p className="text-slate-500 text-sm mb-12 max-w-sm mx-auto font-bold uppercase tracking-widest">Escaneie o código para seu PitDog começar a aceitar pedidos automaticamente.</p>
                         
                         {waStatus === 'CONNECTED' ? (
-                        <button onClick={logoutWA} className="w-full lg:w-auto bg-red-50 text-red-500 px-10 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 transition-all">Desconectar Robô</button>
+                        <div className="space-y-4">
+                            <div className="inline-flex items-center gap-2 bg-green-500/10 text-green-500 px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest mb-4">Sincronizado com Sucesso ✅</div>
+                            <br/>
+                            <button onClick={logoutWA} className="w-full lg:w-auto bg-white/10 text-white px-12 py-5 rounded-3xl font-black border border-white/20 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 transition-all text-xs tracking-widest uppercase">Desconectar Robô</button>
+                        </div>
                         ) : (
-                        <div className="space-y-6">
-                            {waQr && <div className="bg-white p-4 border rounded-3xl inline-block shadow-sm"><QRCode value={waQr} size={180}/></div>}
-                            <button onClick={connectWA} className="w-full lg:w-auto bg-green-500 text-white px-10 py-4 rounded-2xl font-bold shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all">Gerar Novo QR Code</button>
+                        <div className="space-y-10">
+                            {waQr && <div className="bg-white p-8 rounded-[40px] inline-block shadow-2xl border-4 border-slate-800"><QRCode value={waQr} size={200} /></div>}
+                            <br/>
+                            <button onClick={connectWA} className="w-full lg:w-auto bg-green-500 text-white px-12 py-5 rounded-3xl font-black shadow-2xl shadow-green-500/30 hover:bg-green-600 transition-all text-xs tracking-widest uppercase">Gerar Novo QR Code de Acesso</button>
                         </div>
                         )}
+                        <LogOut size={200} className="absolute -left-20 -bottom-20 opacity-[0.02] -rotate-12"/>
                     </div>
-                </div>
+                 </div>
               )}
             </motion.div>
           </AnimatePresence>
@@ -776,7 +935,7 @@ function AdminRouteRenderer({ origin, destination }: { origin: any, destination:
         <DirectionsRenderer 
             directions={directions} 
             options={{
-                polylineOptions: { strokeColor: '#f97316', strokeWeight: 4, strokeOpacity: 0.6 },
+                polylineOptions: { strokeColor: '#f97316', strokeWeight: 4, strokeOpacity: 1 },
                 suppressMarkers: true
             }} 
         />

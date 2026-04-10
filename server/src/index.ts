@@ -433,6 +433,30 @@ app.delete('/api/products/:id', authMiddleware, async (req: any, res) => {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/products/:id/extras', authMiddleware, async (req: any, res) => {
+    try {
+        const { name, price } = req.body;
+        const extra = await prisma.productExtra.create({
+            data: { name, price: parseFloat(price), product_id: req.params.id }
+        });
+        res.json(extra);
+    } catch(e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/extras/:id', authMiddleware, async (req: any, res) => {
+    try {
+        const extra = await prisma.productExtra.findUnique({
+            where: { id: req.params.id },
+            include: { product: true }
+        });
+        if (!extra || extra.product.tenant_id !== req.user.tenant_id) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        await prisma.productExtra.delete({ where: { id: req.params.id } });
+        res.json({ success: true });
+    } catch(e: any) { res.status(500).json({ error: e.message }); }
+});
+
 // Catalog public APIs
 app.get('/api/public/catalog/:slug', async (req, res) => {
     try {
