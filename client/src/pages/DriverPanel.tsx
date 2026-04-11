@@ -148,7 +148,8 @@ export default function DriverPanel() {
     }
   };
 
-  const activeDeliveries = myDeliveries.filter(d => d.order.status !== 'DELIVERED');
+  const activeDeliveries = Array.isArray(myDeliveries) ? myDeliveries.filter(d => d.order?.status !== 'DELIVERED') : [];
+  const currentRequests = Array.isArray(requests) ? requests.filter(r => r.status === 'PENDING') : [];
 
   const openInMaps = (address: string) => {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
@@ -241,7 +242,7 @@ export default function DriverPanel() {
                           </div>
                       )}
                       <AnimatePresence>
-                        {requests.map(req => (
+                        {currentRequests.map(req => (
                             <motion.div 
                               key={req.id} 
                               initial={{ y: 20, opacity: 0 }} 

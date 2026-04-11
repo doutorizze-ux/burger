@@ -755,6 +755,17 @@ app.get('/api/drivers/online', authMiddleware, async (req: any, res) => {
     } catch(e) { res.status(500).json([]); }
 });
 
+app.get('/api/driver/my-deliveries', authMiddleware, async (req: any, res) => {
+    if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
+    try {
+        const deliveries = await prisma.deliveryRequest.findMany({
+            where: { driver_id: req.user.driver_id, status: 'ACCEPTED' },
+            include: { order: { include: { customer: true, tenant: true } } }
+        });
+        res.json(deliveries);
+    } catch(e) { res.status(500).json([]); }
+});
+
 app.get('/api/driver/requests', authMiddleware, async (req: any, res) => {
     if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
     try {
@@ -793,7 +804,12 @@ app.post('/api/driver/accept/:requestId', authMiddleware, async (req: any, res) 
         if (request.order.customer.whatsapp_jid) {
             await sendMessageToJid(req.user.tenant_id, request.order.customer.whatsapp_jid, `Seu pedido saiu para entrega com nosso motoboy! 🛵💨\nAcompanhe ao vivo pelo GPS:\n${trackingUrl}`);
         }
-        res.json({ success: true });
+        const updatedRequest = await prisma.deliveryRequest.findUnique({
+            where: { id: request.id },
+            include: { order: { include: { customer: true, tenant: true } } }
+        });
+
+        res.json(updatedRequest);
     } catch(e) { res.status(500).json({ error: 'Erro' }); }
 });
 
