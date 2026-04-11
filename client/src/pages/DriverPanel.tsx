@@ -5,7 +5,7 @@ import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'l
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { requestForToken, onMessageListener } from '../firebase';
-import { uberMapStyle } from '../mapStyles';
+import { darkMapStyle } from '../mapStyles';
 
 let socket: any;
 
@@ -145,7 +145,8 @@ export default function DriverPanel() {
                     setCurrentRouteTarget(dest);
                 } else {
                     console.error("Directions error:", status);
-                    toast.error("Não foi possível traçar a rota automática. Use o GPS externo.");
+                    toast.error("Não foi possível traçar a rota automática. Use o GPS externo.", { toastId: 'route-error' });
+                    setCurrentRouteTarget(dest);
                 }
             }
         );
@@ -217,7 +218,7 @@ export default function DriverPanel() {
                 center={lastLocation}
                 zoom={17}
                 options={{
-                    styles: uberMapStyle,
+                    styles: darkMapStyle,
                     disableDefaultUI: true,
                     gestureHandling: 'none'
                 }}
@@ -343,7 +344,7 @@ export default function DriverPanel() {
                                         center={lastLocation}
                                         zoom={16}
                                         options={{
-                                            styles: uberMapStyle,
+                                            styles: darkMapStyle,
                                             disableDefaultUI: true,
                                         }}
                                     >
