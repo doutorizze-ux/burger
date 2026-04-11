@@ -572,8 +572,8 @@ export default function AdminPanel() {
                     </div>
                     <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
                        <CheckCircle2 size={24} className="text-green-500 mb-4"/>
-                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Concluídos</p>
-                       <h3 className="text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'DELIVERED').length}</h3>
+                       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Entregas</p>
+                       <h3 className="text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'DELIVERED' || o.status === 'OUT_FOR_DELIVERY' || o.status === 'READY_FOR_PICKUP').length}</h3>
                     </div>
                   </div>
 
@@ -639,12 +639,18 @@ export default function AdminPanel() {
                                 <button onClick={()=>updateOrderStatus(o.id, 'PREPARING')} className="flex-1 bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all">ACEITAR AGORA</button>
                             )}
                             {o.status === 'PREPARING' && (
-                                 <button onClick={()=>updateOrderStatus(o.id, 'DELIVERED')} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
-                                     <Truck size={18}/> ENVIAR ENTREGA
+                                 <button onClick={()=>updateOrderStatus(o.id, 'READY_FOR_PICKUP')} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                     <Truck size={18}/> CHAMAR ENTREGADOR
                                  </button>
                             )}
+                            {o.status === 'READY_FOR_PICKUP' && (
+                                <div className="flex-1 text-center py-4 text-orange-600 font-black text-xs uppercase tracking-widest bg-orange-50 rounded-2xl border border-orange-100">Aguardando Motoboy...</div>
+                            )}
+                            {o.status === 'OUT_FOR_DELIVERY' && (
+                                <div className="flex-1 text-center py-4 text-blue-600 font-black text-xs uppercase tracking-widest bg-blue-50 rounded-2xl border border-blue-100">Em Rota de Entrega</div>
+                            )}
                             {o.status === 'DELIVERED' && (
-                                <div className="flex-1 text-center py-4 text-green-600 font-black text-xs uppercase tracking-widest">Produto Entregue</div>
+                                <div className="flex-1 text-center py-4 text-green-600 font-black text-xs uppercase tracking-widest bg-green-50 rounded-2xl border border-green-100">Pedido Entregue</div>
                             )}
                          </div>
                       </div>

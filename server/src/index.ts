@@ -587,7 +587,14 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
             include: { customer: true, tenant: true }
         });
         
-        const statusLabels: any = { PREPARING: 'Preparando 👨‍🍳', DELIVERED: 'Despachado 🛵', CONFIRMED: 'Confirmado ✅', CANCELLED: 'Cancelado 🚫' };
+        const statusLabels: any = { 
+            PREPARING: 'Preparando 👨‍🍳', 
+            READY_FOR_PICKUP: 'Pronto para Retirada 🛵', 
+            OUT_FOR_DELIVERY: 'Em Entrega 🛵💨',
+            DELIVERED: 'Entregue ✅', 
+            CONFIRMED: 'Confirmado ✅', 
+            CANCELLED: 'Cancelado 🚫' 
+        };
         
         // Notify Customer
         if (order.customer.whatsapp_jid && statusLabels[status]) {
@@ -595,7 +602,7 @@ app.put('/api/orders/:id/status', authMiddleware, async (req: any, res) => {
         }
 
         // --- GLOBAL FLEET DISPATCH ---
-        if (status === 'DELIVERED') {
+        if (status === 'READY_FOR_PICKUP') {
             // 1. Create Delivery Request for the pool
             const request = await prisma.deliveryRequest.create({
                 data: {
