@@ -407,17 +407,26 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
 
             if (process.env.GOOGLE_MAPS_API_KEY) {
                 try {
-                    // Opcional: Aqui poderíamos concatenar a base do Restaurante (origem) se o Tenant tiver Endereço.
-                    // Para o exemplo, pegamos o centro comercial neutro ou vc pode plugar a var Tenant_Address.
-                    const origin = encodeURIComponent("Centro, Goiania, GO"); 
-                    const destination = encodeURIComponent(`${input}, Goiania, GO`);
-                    const gmapRes = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
+                    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+                    const query = encodeURIComponent(`${input}, Brasil`); // Could be tailored to a city if available
                     
-                    if (gmapRes.data.rows[0].elements[0].status === "OK") {
+                    // Geocode the address to extract the formatted and exact address for the driver map
+                    const geocodeRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`);
+                    if (geocodeRes.data.status === 'OK' && geocodeRes.data.results.length > 0) {
+                        mem.address = geocodeRes.data.results[0].formatted_address;
+                    }
+                    
+                    // Use the exact parsed address to calculate the distance matrix
+                    // For the sake of the bot logic, we assume the origin is Goiania as fallback
+                    const origin = encodeURIComponent("Centro, Goiania, GO"); 
+                    const destination = encodeURIComponent(mem.address);
+                    const gmapRes = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${apiKey}`);
+                    
+                    if (gmapRes.data.status === "OK" && gmapRes.data.rows[0].elements[0].status === "OK") {
                         const meters = gmapRes.data.rows[0].elements[0].distance.value;
                         distanceKm = meters / 1000;
                     }
-                } catch(e) { console.log('Erro no gmaps, usando fallback', e); }
+                } catch(e) { console.log('Erro na API do Google Maps.', e); }
             }
 
             const dynFee = tenant.delivery_fee + (distanceKm * 1.50); // Taxa base + 1.50/km
@@ -428,7 +437,7 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
             
             mem.step = 6;
             botMemory.set(remoteJid, mem);
-            await humanizedSendMessage(sock, remoteJid, { text: `Endereço anotado! 🛵\n📌 Distância aproximada: ~${distanceKm.toFixed(1)}km\n💸 Taxa de Entrega Geográfica: R$ ${dynFee.toFixed(2)}\n\n💰 *TOTAL FINAL A PAGAR: R$ ${totalComTaxa.toFixed(2)}*\n\nQual será a *Forma de Pagamento*?\n*1.* PIX (Enviar comprovante ou pagar na entrega)\n*2.* Dinheiro (Precisa de troco? Para quanto?)\n*3.* Cartão (Levaremos a maquininha)` });
+            await humanizedSendMessage(sock, remoteJid, { text: `Endereço compreendido e anotado! 📍\n_${mem.address}_\n\n🛵 Distância: ~${distanceKm.toFixed(1)}km\n💸 Taxa de Entrega: R$ ${dynFee.toFixed(2)}\n\n💰 *TOTAL FINAL A PAGAR: R$ ${totalComTaxa.toFixed(2)}*\n\nQual será a *Forma de Pagamento*?\n*1.* PIX (Enviar comprovante)\n*2.* Dinheiro (Precisa de troco?)\n*3.* Cartão` });
             return;
         }
 
