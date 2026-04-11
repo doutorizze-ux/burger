@@ -3,6 +3,10 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { ShoppingBag, Plus, Minus, CreditCard, Banknote, MapPin, CheckCircle2, X, FastForward } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { useRef } from 'react';
+
+const libraries: ("places")[] = ["places"];
 
 export default function Catalog() {
   const { slug } = useParams();
@@ -26,6 +30,25 @@ export default function Catalog() {
   // Partial Selection Modal
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [tempExtras, setTempExtras] = useState<any[]>([]);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: (import.meta as any).env.VITE_GOOGLE_MAPS_KEY || "",
+    libraries
+  });
+
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  const onPlaceChanged = () => {
+      if (autocompleteRef.current) {
+          const place = autocompleteRef.current.getPlace();
+          if (place && place.formatted_address) {
+              setAddress(place.formatted_address);
+          } else if (place && place.name) {
+              setAddress(place.name); // Fallback
+          }
+      }
+  };
 
   useEffect(() => {
     fetch(`/api/public/catalog/${slug}`)
@@ -340,7 +363,23 @@ export default function Catalog() {
 
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-2 block flex items-center gap-2"><MapPin size={12}/> Onde entregamos?</label>
-                    <input type="text" placeholder="Rua, Número, Bairro, e Complemento" className="w-full p-6 rounded-[28px] bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 font-bold" value={address} onChange={(e)=>setAddress(e.target.value)} />
+                    {isLoaded ? (
+                        <Autocomplete
+                            onLoad={(ref) => autocompleteRef.current = ref}
+                            onPlaceChanged={onPlaceChanged}
+                            options={{ componentRestrictions: { country: "br" } }}
+                        >
+                            <input 
+                                type="text" 
+                                placeholder="Busque seu endereço igual no Uber/iFood..." 
+                                className="w-full p-6 rounded-[28px] bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 font-bold" 
+                                value={address} 
+                                onChange={(e)=>setAddress(e.target.value)} 
+                            />
+                        </Autocomplete>
+                    ) : (
+                        <input type="text" placeholder="Rua, Número, Bairro, e Complemento" className="w-full p-6 rounded-[28px] bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 font-bold" value={address} onChange={(e)=>setAddress(e.target.value)} />
+                    )}
                   </div>
 
                   <div>
