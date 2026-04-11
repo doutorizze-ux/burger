@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, Bell, Wallet, MapPin, CheckCircle2, Navigation, Star, Phone, Package, Zap, X, Map as MapIcon, ChevronRight } from 'lucide-react';
+import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { uberMapStyle } from '../mapStyles';
@@ -78,7 +78,7 @@ export default function DriverPanel() {
         }
       },
       (err) => console.error(err),
-      { enableHighAccuracy: true, distanceFilter: 10 }
+      { enableHighAccuracy: true }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
