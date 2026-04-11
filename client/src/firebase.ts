@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBS47Mwp2L1oOaJj-KXrbzIeTwrUxH66Wk",
@@ -13,9 +13,20 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+let messaging: any = null;
+
+isSupported().then(supported => {
+    if (supported) {
+        try {
+            messaging = getMessaging(app);
+        } catch (e) {
+            console.log("Firebase messaging failed to initialize", e);
+        }
+    }
+});
 
 export const requestForToken = async () => {
+  if (!messaging) return null;
   try {
     const currentToken = await getToken(messaging, { 
       vapidKey: "H9rQZz1v9jKK-Y9zxClL39y7UrZ6CJ8z_KR-m_I7fw8" 
@@ -31,7 +42,7 @@ export const requestForToken = async () => {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${token}`
               },
-              body: JSON.stringify({ fcm_token: currentToken })
+              body: JSON.stringify({ token: currentToken })
           });
       }
       return currentToken;
@@ -39,10 +50,12 @@ export const requestForToken = async () => {
   } catch (err) {
     console.log('An error occurred while retrieving token. ', err);
   }
+  return null;
 };
 
 export const onMessageListener = () =>
   new Promise((resolve) => {
+    if (!messaging) return;
     onMessage(messaging, (payload) => {
       console.log("Payload", payload);
       resolve(payload);
