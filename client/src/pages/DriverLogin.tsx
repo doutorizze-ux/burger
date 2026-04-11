@@ -17,8 +17,8 @@ export default function DriverLogin() {
       });
       const data = await res.json();
       if (data.token) {
-        localStorage.setItem('driverToken', data.token);
-        localStorage.setItem('driver', JSON.stringify(data.driver));
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({ ...data.driver, type: 'DRIVER' }));
         window.location.href = '/driver';
       } else {
         alert(data.error || 'Erro ao fazer login');

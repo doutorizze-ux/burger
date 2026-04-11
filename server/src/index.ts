@@ -663,11 +663,23 @@ app.post('/api/superadmin/drivers', authMiddleware, async (req: any, res) => {
     if (req.user.email !== 'admin@admin.com') return res.status(403).json({ error: 'Denied' });
     try {
         const { name, phone, password } = req.body;
+        console.log(`[DRIVER-CREATE] Attempting to create driver: ${name} (${phone})`);
+        
+        const exists = await prisma.deliveryDriver.findUnique({ where: { phone } });
+        if (exists) {
+            console.log(`[DRIVER-CREATE] Error: Phone ${phone} already registered.`);
+            return res.status(400).json({ error: 'Este telefone já está cadastrado em outro motorista.' });
+        }
+
         const driver = await prisma.deliveryDriver.create({
             data: { name, phone, password }
         });
+        console.log(`[DRIVER-CREATE] Success: Driver ${driver.id} created.`);
         res.json(driver);
-    } catch(e) { res.status(500).json({ error: 'Error' }); }
+    } catch(e: any) { 
+        console.error(`[DRIVER-CREATE] Crash:`, e);
+        res.status(500).json({ error: 'Erro ao criar motorista: ' + e.message }); 
+    }
 });
 
 app.get('/api/superadmin/drivers', authMiddleware, async (req: any, res) => {

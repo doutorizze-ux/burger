@@ -65,9 +65,12 @@ export default function SuperAdmin() {
   };
 
   const fetchDrivers = () => {
-    fetch('/api/drivers/online', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
+    fetch('/api/superadmin/drivers', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
       .then(r => r.json())
-      .then(setDrivers);
+      .then(data => {
+          if (Array.isArray(data)) setDrivers(data);
+          else setDrivers([]);
+      });
   };
 
   const addDriver = async (e: any) => {
