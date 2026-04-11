@@ -485,11 +485,26 @@ app.get('/api/public/catalog/:slug', async (req, res) => {
 
 app.post('/api/public/orders', async (req, res) => {
     try {
-        const { tenant_id, customer_id, items, delivery_address, payment_method, notes, total, delivery_fee } = req.body;
+        const { tenant_id, customer_id, guest_info, items, delivery_address, payment_method, notes, total, delivery_fee } = req.body;
+        
+        let finalCustomerId = customer_id;
+        if (!finalCustomerId && guest_info) {
+            const customer = await prisma.customer.upsert({
+                where: { phone_tenant_id: { phone: guest_info.phone, tenant_id } },
+                update: { name: guest_info.name },
+                create: { name: guest_info.name, phone: guest_info.phone, tenant_id }
+            });
+            finalCustomerId = customer.id;
+        }
+
+        if (!finalCustomerId) {
+            return res.status(400).json({ error: 'Identificação do cliente necessária' });
+        }
+
         const order = await prisma.order.create({
             data: {
                 tenant_id,
-                customer_id,
+                customer_id: finalCustomerId,
                 status: 'PENDING',
                 total,
                 delivery_fee,
@@ -532,12 +547,9 @@ app.post('/api/public/orders', async (req, res) => {
         
         // Notify Customer via WhatsApp
         const tenant = await prisma.tenant.findUnique({ where: { id: tenant_id } });
-        if(tenant) {
-            const customer = await prisma.customer.findUnique({ where: { id: customer_id } });
-            if(customer && customer.whatsapp_jid) {
-                const text = `🍽️ *Pedido Recebido* nº ${order.id.slice(-6)}\n\n*${tenant.name}*\nObrigado por pedir com a gente! Seu pedido está aguardando confirmação.`;
-                await sendMessageToJid(tenant_id, customer.whatsapp_jid, text);
-            }
+        if(tenant && order.customer && order.customer.whatsapp_jid) {
+            const text = `🍽️ *Pedido Recebido* nº ${order.id.slice(-6)}\n\n*${tenant.name}*\nObrigado por pedir com a gente! Seu pedido está aguardando confirmação.`;
+            await sendMessageToJid(tenant_id, order.customer.whatsapp_jid, text);
         }
         res.json(order);
     } catch (e: any) { res.status(500).json({ error: e.message }); }

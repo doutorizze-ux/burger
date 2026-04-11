@@ -227,8 +227,8 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                 await humanizedSendMessage(sock, remoteJid, { text: `Desculpe, nosso cardápio está sendo atualizado no momento.` });
                 return;
             }
-            const catalogUrl = `${tenant.slug ? 'https://pitdog.ai/' + tenant.slug : 'http://localhost:5173/catalog/' + tenantId}`;
-            let reply = `🍔 Olá *${customer.name.split(' ')[0]}*! Somos da *${tenant.name}*!\n\n🤖 Eu sou o Garçom Virtual. Você pode pedir por aqui ou ver nosso cardápio completo com fotos aqui: \n🔗 ${catalogUrl}\n\n*Digite o NÚMERO da categoria que deseja:*👇\n\n`;
+            const catalogUrl = `${tenant.slug ? 'https://pitdog.ai/' + tenant.slug : 'http://localhost:5173/catalog/' + tenantId}?ref=${customer.id}`;
+            let reply = `🍔 Olá *${customer.name.split(' ')[0]}*! Somos da *${tenant.name}*!\n\n🤖 Eu sou o Garçom Virtual. Você pode pedir por aqui ou ver nosso cardápio completo com fotos aqui: \n🔗 ${catalogUrl} \n\n*Ou se preferir peça por aqui mesmo, Digite o NÚMERO da categoria:*👇\n\n`;
             categories.forEach((cat, index) => {
                 reply += `*${index + 1}.* ${cat.name}\n`;
             });
