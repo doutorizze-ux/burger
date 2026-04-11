@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
+import { requestForToken, onMessageListener } from '../firebase';
 import { uberMapStyle } from '../mapStyles';
 
 let socket: any;
@@ -23,6 +24,7 @@ export default function DriverPanel() {
   const [myDeliveries, setMyDeliveries] = useState<any[]>([]);
   const [lastLocation, setLastLocation] = useState<any>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [currentRouteTarget, setCurrentRouteTarget] = useState<string | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -43,7 +45,25 @@ export default function DriverPanel() {
         }
         setDriver(data);
         setIsOnline(data.isOnline);
+        
+        requestForToken().then(fcmToken => {
+            if (fcmToken) {
+                fetch('/api/fcm-token', {
+                    method: 'POST',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: fcmToken })
+                });
+            }
+        });
       });
+      
+    onMessageListener().then((payload: any) => {
+        toast.info(payload.notification.title + ": " + payload.notification.body, {
+            position: "top-center",
+            autoClose: 10000,
+            theme: "colored",
+        });
+    });
     
     fetch('/api/driver/requests', { headers })
       .then(r => r.json())
@@ -60,6 +80,13 @@ export default function DriverPanel() {
       });
 
     socket = io();
+    socket.on('connect', () => {
+        if (driver?.isOnline && lastLocation) {
+             socket.emit('driver_online', { driverId: driver.id, lat: lastLocation.lat, lng: lastLocation.lng });
+        }
+        // Force re-join global driver namespace so we don't miss calls
+        socket.emit('join', 'drivers_global');
+    });
 
     socket.on('new_delivery_request', (req: any) => {
         setRequests(prev => Array.isArray(prev) ? [req, ...prev] : [req]);
@@ -102,24 +129,31 @@ export default function DriverPanel() {
   // Map route logic
   useEffect(() => {
     const active = Array.isArray(myDeliveries) ? myDeliveries.find(d => d.order?.status === 'OUT_FOR_DELIVERY') : null;
-    if (isLoaded && lastLocation && active?.order?.delivery_address) {
+    const dest = active?.order?.delivery_address;
+    
+    if (isLoaded && lastLocation && dest && currentRouteTarget !== dest) {
         const directionsService = new google.maps.DirectionsService();
         directionsService.route(
             {
                 origin: lastLocation,
-                destination: active.order.delivery_address,
+                destination: dest,
                 travelMode: google.maps.TravelMode.DRIVING,
             },
             (result, status) => {
                 if (status === google.maps.DirectionsStatus.OK) {
                     setDirections(result);
+                    setCurrentRouteTarget(dest);
+                } else {
+                    console.error("Directions error:", status);
+                    toast.error("Não foi possível traçar a rota automática. Use o GPS externo.");
                 }
             }
         );
-    } else {
+    } else if (!active) {
         setDirections(null);
+        setCurrentRouteTarget(null);
     }
-  }, [isLoaded, lastLocation, myDeliveries]);
+  }, [isLoaded, lastLocation, myDeliveries, currentRouteTarget]);
 
   const toggleOnline = () => {
     const newStatus = !isOnline;
@@ -302,12 +336,12 @@ export default function DriverPanel() {
                       {activeDeliveries.map(delivery => (
                           <div key={delivery.id} className="space-y-4">
                              {/* Floating Interactive Map */}
-                             <div className="h-[350px] bg-slate-800 rounded-[48px] overflow-hidden border-4 border-slate-900 shadow-2xl relative">
+                             <div className="h-[500px] w-full bg-slate-800 rounded-[48px] overflow-hidden border-4 border-slate-900 shadow-2xl relative">
                                 {isLoaded && lastLocation ? (
                                     <GoogleMap
                                         mapContainerStyle={mapContainerStyle}
                                         center={lastLocation}
-                                        zoom={15}
+                                        zoom={16}
                                         options={{
                                             styles: uberMapStyle,
                                             disableDefaultUI: true,

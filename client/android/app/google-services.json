@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "287384239450",
+    "firebase_url": "https://flux-8ba0f-default-rtdb.firebaseio.com",
+    "project_id": "flux-8ba0f",
+    "storage_bucket": "flux-8ba0f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:287384239450:android:ddbb3796a7d3656d834763",
+        "android_client_info": {
+          "package_name": "com.flux.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "287384239450-9nmomt0htvqd6s3nl5rvdu315gnvgha8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flux.app",
+            "certificate_hash": "1a86143a7c636ea4d4da30ff40b2634a1c40f7a9"
+          }
+        },
+        {
+          "client_id": "287384239450-pp7iqm60j7a90fvclo1h7m8p8otcrhnf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRibwEdRzrpwYWUmxvUgVs2U6TTzJ18z0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "287384239450-pp7iqm60j7a90fvclo1h7m8p8otcrhnf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "287384239450-gdh8qfs8elqpq7h1l6ksn5ktjib66d3r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.flux.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
