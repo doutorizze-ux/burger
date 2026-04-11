@@ -169,13 +169,21 @@ eventBus.on(EVENTS.NEW_MESSAGE, (msg) => {
     io.to(msg.tenant_id).emit('new_message', msg);
 });
 
+eventBus.on(EVENTS.NEW_ORDER, (order) => {
+    console.log(`[SOCKET] Broadcasting new order for tenant: ${order.tenant_id}`);
+    io.to(order.tenant_id).emit('new_order', order);
+});
+
 eventBus.on(EVENTS.NEW_DELIVERY_REQUEST, ({ tenantId, request }) => {
+    console.log(`[SOCKET] Broadcasting new delivery request to fleet: ${tenantId}`);
     io.to(`drivers_global`).emit('new_delivery_request', request);
 });
 
 eventBus.on(EVENTS.DELIVERY_EXPIRED, ({ tenantId, requestId }) => {
-    io.to(`drivers_global`).emit('delivery_expired', { requestId });
+    io.to(`drivers_global`).emit('delivery_expired', requestId);
 });
+
+
 
 // START: ROUTES
 app.post('/api/register', async (req, res) => {

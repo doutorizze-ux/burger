@@ -1,382 +1,269 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { Truck, MapPin, Navigation, Package, LogOut, Bell, Zap, Clock, ShieldCheck, Wallet, History, TrendingUp } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
-import { darkMapStyle } from '../mapStyles';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Capacitor, registerPlugin } from '@capacitor/core';
-
-const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation');
+import { Truck, Bell, Wallet, MapPin, CheckCircle2, Navigation, Star, Phone, Package, Zap, X, Map as MapIcon, ChevronRight } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
+import { uberMapStyle } from '../mapStyles';
 
 let socket: any;
 
 const mapContainerStyle = {
   width: '100%',
   height: '100%',
+  borderRadius: '32px'
 };
-
-const defaultCenter = { lat: -16.6869, lng: -49.2648 };
 
 export default function DriverPanel() {
   const [driver, setDriver] = useState<any>(null);
+  const [isOnline, setIsOnline] = useState(false);
+  const [activeTab, setActiveTab] = useState('requests'); // requests, active, wallet
+  
   const [requests, setRequests] = useState<any[]>([]);
   const [myDeliveries, setMyDeliveries] = useState<any[]>([]);
-  const activeDeliveries = myDeliveries.filter(d => d.order.status !== 'DELIVERED');
-  const [activeTab, setActiveTab] = useState<'requests' | 'active' | 'wallet'>('requests');
-  const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [isOnline, setIsOnline] = useState(true);
+  const [lastLocation, setLastLocation] = useState<any>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [walletData, setWalletData] = useState<{balance: number, transactions: any[]}>({balance: 0, transactions: []});
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: (import.meta as any).env.VITE_GOOGLE_MAPS_KEY || ""
   });
 
-  useEffect(() => {
-    const savedDriver = localStorage.getItem('driver');
-    if (savedDriver) {
-        const d = JSON.parse(savedDriver);
-        setDriver(d);
-        initSocket(d.id, localStorage.getItem('driverToken'));
-    } else {
-        window.location.href = '/login/driver';
-    }
-  }, []);
+  const token = localStorage.getItem('token');
+  const headers = { 'Authorization': `Bearer ${token}` };
 
   useEffect(() => {
-    if (!driver || !isOnline) return;
-
-    let hasJoined = false;
-    let watcherId: string | null = null;
-    let browserWatchId: number | null = null;
-
-    const emitLocation = (loc: {lat: number, lng: number}) => {
-        setCurrentLocation(loc);
-        if (socket && driver && isOnline) {
-            if (!hasJoined) {
-                socket.emit('driver_online', { driverId: driver.id, ...loc });
-                hasJoined = true;
-            }
-
-            socket.emit('driver_location', { 
-                driverId: driver.id, 
-                ...loc,
-                orderId: myDeliveries[0]?.order_id || null, 
-                tenant_id: myDeliveries[0]?.order?.tenant_id || null
-            });
-        }
-    };
-
-    const startTracking = async () => {
-        if (Capacitor.isNativePlatform()) {
-            try {
-                watcherId = await BackgroundGeolocation.addWatcher(
-                    {
-                        backgroundMessage: "Rastreando sua localização para entregas...",
-                        backgroundTitle: "Flux Driver Ativo",
-                        requestPermissions: true,
-                        stale: false,
-                        distanceFilter: 3 
-                    },
-                    (location: any) => {
-                        if (location) {
-                            emitLocation({ lat: location.latitude, lng: location.longitude });
-                        }
-                    }
-                );
-            } catch (err) {
-                console.error("Background GPS Error:", err);
-            }
-        } else {
-            // Browser Fallback
-            if (navigator.geolocation) {
-                browserWatchId = navigator.geolocation.watchPosition(
-                    (pos) => emitLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                    (err) => console.error(err),
-                    { enableHighAccuracy: true }
-                );
-            }
-        }
-    };
-
-    startTracking();
-
-    return () => {
-        if (watcherId) {
-            BackgroundGeolocation.removeWatcher({ id: watcherId });
-        }
-        if (browserWatchId !== null) {
-            navigator.geolocation.clearWatch(browserWatchId);
-        }
-    };
-  }, [driver, isOnline, myDeliveries]);
-
-  useEffect(() => {
-    if (!isLoaded || !currentLocation || activeDeliveries.length === 0) {
-        setDirections(null);
-        return;
-    }
-
-    const delivery = activeDeliveries[0];
-    const directionsService = new google.maps.DirectionsService();
-
-    directionsService.route(
-        {
-            origin: currentLocation,
-            destination: delivery.order.delivery_address,
-            travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK) {
-                setDirections(result);
-            }
-        }
-    );
-  }, [isLoaded, currentLocation, activeDeliveries]);
-
-  const fetchWallet = async () => {
-    const token = localStorage.getItem('driverToken');
-    const res = await fetch('/api/driver/wallet', {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.ok) setWalletData(await res.json());
-  };
-
-  useEffect(() => {
-    if (activeTab === 'wallet') fetchWallet();
-  }, [activeTab]);
-
-  const initSocket = (driverId: string, token: string | null) => {
-    socket = io({ auth: { token } });
-    socket.emit('join', `driver_${driverId}`); 
+    fetch('/api/driver/me', { headers })
+      .then(r => r.json())
+      .then(data => {
+        setDriver(data);
+        setIsOnline(data.isOnline);
+      });
     
+    fetch('/api/driver/requests', { headers }).then(r => r.json()).then(setRequests);
+    fetch('/api/driver/my-deliveries', { headers }).then(r => r.json()).then(setMyDeliveries);
+
+    socket = io();
+
     socket.on('new_delivery_request', (req: any) => {
         setRequests(prev => [req, ...prev]);
-        if (audioRef.current) {
-            audioRef.current.play().catch(() => {});
-        }
-        // Vibrate if available
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        toast.info("🔔 Nova solicitação de entrega disponível!");
     });
 
-    const headers = { 'Authorization': `Bearer ${token}` };
-    fetch('/api/driver/requests', { headers }).then(r=>r.json()).then(setRequests);
-    fetch(`/api/driver/deliveries/${driverId}`, { headers }).then(r=>r.json()).then(setMyDeliveries);
-  };
-
-  const acceptRequest = async (requestId: string) => {
-    const res = await fetch(`/api/driver/accept/${requestId}`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`,
-          'Content-Type': 'application/json' 
-        }
+    socket.on('delivery_expired', (id: string) => {
+        setRequests(prev => prev.filter(r => r.id !== id));
     });
-    if (res.ok) {
-        setRequests(prev => prev.filter(r => r.id !== requestId));
-        const headers = { 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` };
-        fetch(`/api/driver/deliveries/${driver.id}`, { headers }).then(r=>r.json()).then(setMyDeliveries);
-        setActiveTab('active');
+
+    return () => { socket.disconnect(); };
+  }, []);
+
+  // Update real-time location and directions
+  useEffect(() => {
+    if (!isOnline) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setLastLocation({ lat, lng });
+        if (socket) {
+          // If we have an active delivery, send its ID too
+          const active = myDeliveries.find(d => d.order.status === 'OUT_FOR_DELIVERY');
+          socket.emit('driver_location', { 
+            driverId: driver?.id, 
+            lat, 
+            lng,
+            orderId: active?.order_id,
+            tenantId: active?.tenant_id
+          });
+        }
+      },
+      (err) => console.error(err),
+      { enableHighAccuracy: true, distanceFilter: 10 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isOnline, driver, myDeliveries]);
+
+  // Map route logic
+  useEffect(() => {
+    const active = myDeliveries.find(d => d.order.status === 'OUT_FOR_DELIVERY');
+    if (isLoaded && lastLocation && active?.order?.delivery_address) {
+        const directionsService = new google.maps.DirectionsService();
+        directionsService.route(
+            {
+                origin: lastLocation,
+                destination: active.order.delivery_address,
+                travelMode: google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    setDirections(result);
+                }
+            }
+        );
+    } else {
+        setDirections(null);
     }
-  };
-
-  const completeDelivery = async (requestId: string) => {
-    const res = await fetch(`/api/driver/finish/${requestId}`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`,
-          'Content-Type': 'application/json' 
-        }
-    });
-    if (res.ok) {
-        const headers = { 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` };
-        fetch(`/api/driver/deliveries/${driver.id}`, { headers }).then(r=>r.json()).then(setMyDeliveries);
-    }
-  };
-
-  const openInMaps = (address: string) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-    window.open(url, '_blank');
-  };
+  }, [isLoaded, lastLocation, myDeliveries]);
 
   const toggleOnline = () => {
     const newStatus = !isOnline;
     setIsOnline(newStatus);
-    if (!newStatus && socket && driver) {
-        socket.emit('driver_offline', { driverId: driver.id });
+    fetch('/api/driver/status', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isOnline: newStatus })
+    });
+    
+    if (newStatus) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            socket.emit('driver_online', { driverId: driver?.id, lat, lng });
+        });
+    } else {
+        socket.emit('driver_offline', { driverId: driver?.id });
     }
   };
 
-  const logout = () => {
-    if (socket && driver) {
-        socket.emit('driver_offline', { driverId: driver.id });
+  const acceptRequest = async (requestId: string) => {
+    const res = await fetch(`/api/driver/accept/${requestId}`, { method: 'POST', headers });
+    if (res.ok) {
+        const data = await res.json();
+        setMyDeliveries([data, ...myDeliveries]);
+        setRequests(requests.filter(r => r.id !== requestId));
+        setActiveTab('active');
+        toast.success("✅ Corrida aceita!");
+    } else {
+        const err = await res.json();
+        toast.error(err.error || "Erro ao aceitar");
     }
-    localStorage.removeItem('driver');
-    localStorage.removeItem('driverToken');
-    window.location.href='/';
+  };
+
+  const finishDelivery = async (deliveryId: string) => {
+    const res = await fetch(`/api/driver/finish/${deliveryId}`, { method: 'POST', headers });
+    if (res.ok) {
+        setMyDeliveries(myDeliveries.filter(d => d.id !== deliveryId));
+        toast.success("🎉 Entrega concluída!");
+        setActiveTab('requests');
+    }
+  };
+
+  const activeDeliveries = myDeliveries.filter(d => d.order.status !== 'DELIVERED');
+
+  const openInMaps = (address: string) => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
   };
 
   if (!driver) return null;
 
-
   return (
-    <div className="fixed inset-0 bg-[#050505] text-white font-sans overflow-hidden flex flex-col">
-      <audio ref={audioRef} src="/notification.mp3" />
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-green-500/30">
       
-      {/* Dynamic Background Map */}
-      <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${activeDeliveries.length > 0 && activeTab === 'active' ? 'opacity-100' : 'opacity-70'}`}>
-        {isLoaded && (
-            <GoogleMap
-                mapContainerStyle={mapContainerStyle}
-                center={currentLocation || defaultCenter}
-                zoom={16}
-                options={{ 
-                    styles: darkMapStyle, 
+      {/* Dynamic Uber-Like Background Map */}
+      <div className="fixed inset-0 z-0 opacity-40">
+         {isLoaded && lastLocation && (
+             <GoogleMap
+                mapContainerStyle={{ width: '100%', height: '100%' }}
+                center={lastLocation}
+                zoom={17}
+                options={{
+                    styles: uberMapStyle,
                     disableDefaultUI: true,
-                    zoomControl: false,
-                    streetViewControl: false,
-                    mapTypeControl: false,
-                    gestureHandling: 'cooperative'
+                    gestureHandling: 'none'
                 }}
-            >
-                {directions && (
-                    <DirectionsRenderer 
-                        directions={directions} 
-                        options={{
-                            polylineOptions: { 
-                                strokeColor: '#4f46e5', 
-                                strokeOpacity: 0.8, 
-                                strokeWeight: 6 
-                            },
-                            suppressMarkers: false 
-                        }} 
-                    />
-                )}
-                
-                {currentLocation && !directions && (
-                    <Marker 
-                        position={currentLocation}
-                        icon={{
-                            url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png",
-                            scaledSize: new window.google.maps.Size(40, 40)
-                        }}
-                    />
-                )}
-            </GoogleMap>
-        )}
+             >
+                <Marker position={lastLocation} icon={{ url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", scaledSize: new window.google.maps.Size(40, 40) }} />
+             </GoogleMap>
+         )}
+         {!lastLocation && <div className="w-full h-full bg-slate-900 animate-pulse" />}
       </div>
 
-      {/* Header Overlay */}
-      <header className="relative z-10 p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
-        <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <h1 className="text-xl font-black tracking-tighter">FLUX <span className="text-green-500">DRIVER</span></h1>
-        </div>
-        <div className="flex items-center gap-4">
-            <button 
-               onClick={toggleOnline} 
-               className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${isOnline ? 'bg-green-600/20 text-green-400 border border-green-500/30' : 'bg-red-600/20 text-red-400 border border-red-500/30'}`}
-            >
-               {isOnline ? 'EM TURNO' : 'OFFLINE'}
-            </button>
-            <button onClick={logout} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
-                <LogOut size={18}/>
-            </button>
-        </div>
+      <header className="relative z-10 p-6 flex justify-between items-center bg-gradient-to-b from-slate-900 to-transparent">
+          <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`} />
+              <h1 className="text-xl font-black italic tracking-tighter">FLUX<span className="text-green-500">DRIVER</span></h1>
+          </div>
+          <div className="flex gap-3">
+              <button onClick={toggleOnline} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isOnline ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
+                  {isOnline ? 'EM TURNO' : 'OFFLINE'}
+              </button>
+              <button className="bg-slate-800 p-2 rounded-xl text-slate-400 border border-white/5"><X size={20}/></button>
+          </div>
       </header>
 
-      {/* Hero Stats */}
-      <div className="relative z-10 px-6 pt-2 pb-6 grid grid-cols-2 gap-4">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[28px] p-4">
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  <Clock size={10}/> Hoje
-              </p>
-              <h3 className="text-2xl font-black">{myDeliveries.filter(d=>d.order.status === 'DELIVERED').length}</h3>
-              <p className="text-[10px] text-gray-400 uppercase font-bold">Corridas</p>
-          </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[28px] p-4">
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  <Zap size={10} className="text-yellow-400"/> Ganhos
-              </p>
-              <h3 className="text-2xl font-black text-green-400">R$ {(myDeliveries.filter(d=>d.order.status === 'DELIVERED').length * 7).toFixed(2)}</h3>
-              <p className="text-[10px] text-gray-400 uppercase font-bold">Estimados</p>
-          </div>
-      </div>
-
-      {/* Main Panel Area */}
-      <main className="relative z-20 flex-1 bg-white/5 backdrop-blur-2xl rounded-t-[48px] border-t border-white/10 flex flex-col overflow-hidden">
-          
-          {/* Navigation Bar */}
-          <div className="p-6 flex gap-2">
-              <button 
-                onClick={() => setActiveTab('requests')} 
-                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-[10px] transition-all relative ${activeTab === 'requests' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
-              >
-                  <Bell size={16}/> PEDIDOS
-                  {requests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white rounded-full text-[10px] flex items-center justify-center border-2 border-black">{requests.length}</span>}
-              </button>
-              <button 
-                onClick={() => setActiveTab('active')} 
-                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-[10px] transition-all ${activeTab === 'active' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
-              >
-                  <Navigation size={16}/> ATIVO
-                  {activeDeliveries.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white rounded-full text-[10px] flex items-center justify-center border-2 border-black">{activeDeliveries.length}</span>}
-              </button>
-              <button 
-                onClick={() => setActiveTab('wallet')} 
-                className={`flex-1 flex gap-2 items-center justify-center py-4 rounded-2xl font-black text-[10px] transition-all ${activeTab === 'wallet' ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400'}`}
-              >
-                  <Wallet size={16}/> CARTEIRA
-              </button>
+      <main className="relative z-10 p-6 pt-2">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-slate-900/60 backdrop-blur-xl p-5 rounded-[32px] border border-white/5">
+                  <div className="flex items-center gap-2 text-gray-500 mb-2">
+                    <Clock size={14}/>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Hoje</span>
+                  </div>
+                  <p className="text-3xl font-black">{activeDeliveries.length}</p>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase">Corridas</p>
+              </div>
+              <div className="bg-slate-900/60 backdrop-blur-xl p-5 rounded-[32px] border border-white/5">
+                  <div className="flex items-center gap-2 text-gray-500 mb-2">
+                    <Zap size={14} className="text-yellow-500"/>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Ganhos</span>
+                  </div>
+                  <p className="text-3xl font-black text-green-500">R$ {(driver.balance || 0).toFixed(2)}</p>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase">Estimados</p>
+              </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-24 scrollbar-hide">
+          {/* Tab Navigation */}
+          <div className="bg-slate-900/80 backdrop-blur-2xl p-2 rounded-[32px] flex mb-8 border border-white/5">
+              {[
+                { id: 'requests', label: 'PEDIDOS', icon: Bell },
+                { id: 'active', label: 'ATIVO', icon: Navigation },
+                { id: 'wallet', label: 'CARTEIRA', icon: Wallet }
+              ].map(tab => (
+                <button 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-[24px] font-black text-[10px] tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500'}`}
+                >
+                  <tab.icon size={16}/> {tab.label}
+                </button>
+              ))}
+          </div>
+
+          <div className="pb-32">
               {activeTab === 'requests' && (
                   <div className="space-y-4">
                       {requests.length === 0 && (
                           <div className="text-center py-16 opacity-30 flex flex-col items-center">
                               <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
-                                  <Package size={32}/>
+                                  <Bell size={32}/>
                               </div>
-                              <p className="font-bold text-sm">Procurando pedidos ao seu redor...</p>
+                              <p className="font-bold text-sm">Aguardando novos pedidos...</p>
                           </div>
                       )}
                       <AnimatePresence>
                         {requests.map(req => (
                             <motion.div 
                               key={req.id} 
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, x: -100 }}
-                              className="bg-indigo-600 rounded-[36px] p-6 shadow-2xl border border-white/10"
+                              initial={{ y: 20, opacity: 0 }} 
+                              animate={{ y: 0, opacity: 1 }}
+                              className="bg-slate-900 p-6 rounded-[40px] border border-white/5 shadow-2xl"
                             >
-                              <div className="flex justify-between items-start mb-6">
-                                  <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                                          <ShieldCheck size={20} className="text-indigo-200"/>
-                                      </div>
-                                      <div>
-                                          <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">REDE FLUX</p>
-                                          <h4 className="text-lg font-black text-white">{req.order?.tenant?.name || 'Flux Store'}</h4>
-                                      </div>
-                                  </div>
-                                  <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-black text-white">R$ 7,50 FIXO</div>
+                              <div className="flex justify-between items-center mb-6">
+                                  <div className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black">NOVO PEDIDO</div>
+                                  <span className="text-white font-black text-xl">R$ {req.order.delivery_fee.toFixed(2)}</span>
                               </div>
-
-                              <div className="flex items-center gap-3 mb-6 bg-black/20 p-4 rounded-2xl">
-                                  <MapPin className="text-indigo-200" size={18}/>
-                                  <div className="flex-1">
-                                      <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">ENTREGA EM</p>
-                                      <p className="font-bold text-white text-sm leading-tight line-clamp-2">{req.order.address}</p>
+                              <div className="flex items-center gap-4 mb-6">
+                                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">🍔</div>
+                                  <div>
+                                      <h4 className="font-black text-white uppercase">{req.order.tenant.name}</h4>
+                                      <p className="text-[10px] font-bold text-gray-500 tracking-widest">Loja de Origem</p>
                                   </div>
                               </div>
-
-                              <button 
-                                onClick={() => acceptRequest(req.id)}
-                                className="w-full bg-white text-indigo-600 py-5 rounded-[22px] font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-                              >
+                              <div className="bg-black/40 p-4 rounded-3xl border border-white/5 mb-6">
+                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Destino</p>
+                                  <p className="font-bold text-sm text-slate-300">{req.order.delivery_address}</p>
+                              </div>
+                              <button onClick={() => acceptRequest(req.id)} className="w-full bg-green-500 text-slate-950 py-5 rounded-[24px] font-black text-xs tracking-widest uppercase shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
                                   PEGAR PEDIDO <Zap size={20} fill="currentColor"/>
                               </button>
                             </motion.div>
@@ -386,7 +273,7 @@ export default function DriverPanel() {
               )}
 
               {activeTab === 'active' && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                       {activeDeliveries.length === 0 && (
                           <div className="text-center py-16 opacity-30 flex flex-col items-center">
                               <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
@@ -395,98 +282,74 @@ export default function DriverPanel() {
                               <p className="font-bold text-sm">Nenhuma entrega em curso.</p>
                           </div>
                       )}
-                      <AnimatePresence>
-                        {activeDeliveries.map(delivery => (
-                            <motion.div 
-                              key={delivery.id} 
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.9 }}
-                              className="bg-slate-800/80 backdrop-blur-md rounded-[36px] p-6 border border-white/10 shadow-2xl"
-                            >
-                              <div className="flex justify-between items-center mb-6">
-                                  <span className="px-3 py-1 bg-green-500/10 text-green-400 rounded-lg text-[10px] font-black uppercase">Entrega Iniciada</span>
-                                  <span className="text-xs font-bold text-gray-500">#{delivery.order.id.slice(-4)}</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-4 mb-6">
-                                  <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-3xl">🏠</div>
-                                  <div>
-                                      <h4 className="text-xl font-black text-white">{delivery.order.customer.name}</h4>
-                                      <p className="text-xs font-bold text-gray-400">Cliente Relevante</p>
-                                  </div>
-                              </div>
+                      
+                      {activeDeliveries.map(delivery => (
+                          <div key={delivery.id} className="space-y-4">
+                             {/* Floating Interactive Map */}
+                             <div className="h-[350px] bg-slate-800 rounded-[48px] overflow-hidden border-4 border-slate-900 shadow-2xl relative">
+                                {isLoaded && lastLocation ? (
+                                    <GoogleMap
+                                        mapContainerStyle={mapContainerStyle}
+                                        center={lastLocation}
+                                        zoom={15}
+                                        options={{
+                                            styles: uberMapStyle,
+                                            disableDefaultUI: true,
+                                        }}
+                                    >
+                                        {directions && <DirectionsRenderer directions={directions} options={{ polylineOptions: { strokeColor: '#22c55e', strokeWeight: 6 } }} />}
+                                        <Marker position={lastLocation} icon={{ url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", scaledSize: new window.google.maps.Size(40, 40) }} />
+                                    </GoogleMap>
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-900">
+                                        <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Iniciando Navegação...</p>
+                                    </div>
+                                )}
+                                
+                                <div className="absolute top-6 left-6 right-6 flex justify-between">
+                                     <button onClick={() => openInMaps(delivery.order.delivery_address)} className="bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase flex items-center gap-2 shadow-xl active:scale-95">
+                                         <Navigation size={16}/> GPS EXTERNO
+                                     </button>
+                                     <div className="bg-slate-900/90 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-[10px] font-black text-green-400">
+                                         #{delivery.order.id.slice(-4)}
+                                     </div>
+                                </div>
+                             </div>
 
-                              <div 
-                                onClick={() => openInMaps(delivery.order.address)}
-                                className="bg-black/20 p-5 rounded-[22px] border border-white/5 mb-6 active:bg-black/40 transition-all cursor-pointer"
-                              >
-                                  <div className="flex justify-between items-center mb-2">
-                                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Endereço de Destino</p>
-                                      <Navigation size={14} className="text-blue-400"/>
-                                  </div>
-                                  <p className="font-black text-slate-200 text-sm">{delivery.order.address}</p>
-                              </div>
+                             {/* Delivery Details Card */}
+                             <div className="bg-slate-900 p-8 rounded-[48px] border border-white/5 shadow-2xl">
+                                <div className="flex items-center gap-5 mb-8">
+                                    <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-3xl">🏠</div>
+                                    <div>
+                                        <h4 className="text-2xl font-black text-white">{delivery.order.customer.name}</h4>
+                                        <p className="text-xs font-bold text-gray-500">Cliente • {delivery.order.payment_method}</p>
+                                    </div>
+                                </div>
 
-                              <div className="grid grid-cols-2 gap-3">
-                                  <button onClick={() => openInMaps(delivery.order.address)} className="bg-slate-700/50 text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 border border-white/5">
-                                      MAPAS
-                                  </button>
-                                  <button onClick={() => completeDelivery(delivery.id)} className="bg-green-600 text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-green-600/20">
-                                      ENTREGUE
-                                  </button>
-                              </div>
-                            </motion.div>
-                        ))}
-                      </AnimatePresence>
-                  </div>
-              )}
+                                <div className="bg-black/30 p-6 rounded-[32px] border border-white/5 mb-8">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Endereço</p>
+                                        <MapPin size={14} className="text-blue-400"/>
+                                    </div>
+                                    <p className="font-black text-slate-200 text-sm leading-tight">{delivery.order.delivery_address}</p>
+                                </div>
 
-              {activeTab === 'wallet' && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                      <div className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] text-center shadow-2xl">
-                          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Saldo Disponível</p>
-                          <h2 className="text-4xl font-black text-white">R$ {walletData.balance.toFixed(2)}</h2>
-                          <div className="flex gap-2 justify-center mt-6">
-                              <div className="bg-orange-500/10 text-orange-500 px-4 py-2 rounded-full text-[10px] font-bold border border-orange-500/20">Aguardando Pagamento</div>
+                                <div className="flex gap-4">
+                                    <button onClick={() => finishDelivery(delivery.id)} className="flex-[2] bg-green-500 text-slate-950 py-6 rounded-3xl font-black text-sm tracking-widest uppercase shadow-lg shadow-green-500/20 active:scale-95 transition-all">
+                                        ENTREGUE ✅
+                                    </button>
+                                    <button className="flex-1 bg-slate-800 text-white rounded-3xl flex items-center justify-center border border-white/5 active:scale-95 transition-all">
+                                        <Phone size={24}/>
+                                    </button>
+                                </div>
+                             </div>
                           </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 px-2">
-                          <History size={18} className="text-slate-500"/>
-                          <h3 className="font-black text-white text-sm uppercase">Últimos Ganhos</h3>
-                      </div>
-
-                      <div className="space-y-3 pb-20">
-                          {walletData.transactions.map((t: any) => (
-                              <div key={t.id} className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-orange-500">
-                                          <TrendingUp size={18}/>
-                                      </div>
-                                      <div className="max-w-[180px]">
-                                          <p className="font-bold text-white text-sm truncate">{t.description}</p>
-                                          <p className="text-[10px] text-slate-500">{new Date(t.created_at).toLocaleDateString('pt-BR')} as {new Date(t.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</p>
-                                      </div>
-                                  </div>
-                                  <p className="font-black text-green-500">R$ {t.amount.toFixed(2)}</p>
-                              </div>
-                          ))}
-                          {walletData.transactions.length === 0 && (
-                              <div className="text-center py-20 bg-slate-900/20 rounded-[32px] border border-dashed border-slate-800">
-                                  <p className="text-slate-500 font-bold italic">Nenhum ganho registrado ainda.</p>
-                              </div>
-                          )}
-                      </div>
-                  </motion.div>
+                      ))}
+                  </div>
               )}
           </div>
       </main>
-
-      {/* Persistent Status Bar */}
-      <div className="fixed bottom-0 left-0 right-0 h-2 px-6 pb-8 bg-gradient-to-t from-black to-transparent pointer-events-none flex items-end justify-center">
-            <div className="w-12 h-1.5 bg-white/20 rounded-full mb-4"></div>
-      </div>
     </div>
   );
 }
