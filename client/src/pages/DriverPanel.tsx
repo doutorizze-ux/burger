@@ -36,22 +36,38 @@ export default function DriverPanel() {
     fetch('/api/driver/me', { headers })
       .then(r => r.json())
       .then(data => {
+        if (data.error) {
+           toast.error("Sua sessão expirou. Faça login novamente.");
+           window.location.href = '/login/driver';
+           return;
+        }
         setDriver(data);
         setIsOnline(data.isOnline);
       });
     
-    fetch('/api/driver/requests', { headers }).then(r => r.json()).then(setRequests);
-    fetch('/api/driver/my-deliveries', { headers }).then(r => r.json()).then(setMyDeliveries);
+    fetch('/api/driver/requests', { headers })
+      .then(r => r.json())
+      .then(data => {
+          if (Array.isArray(data)) setRequests(data);
+          else setRequests([]);
+      });
+
+    fetch('/api/driver/my-deliveries', { headers })
+      .then(r => r.json())
+      .then(data => {
+          if (Array.isArray(data)) setMyDeliveries(data);
+          else setMyDeliveries([]);
+      });
 
     socket = io();
 
     socket.on('new_delivery_request', (req: any) => {
-        setRequests(prev => [req, ...prev]);
-        toast.info("🔔 Nova solicitação de entrega disponível!");
+        setRequests(prev => Array.isArray(prev) ? [req, ...prev] : [req]);
+        toast.info("🔔 Nova solicitação de entrega!");
     });
 
     socket.on('delivery_expired', (id: string) => {
-        setRequests(prev => prev.filter(r => r.id !== id));
+        setRequests(prev => Array.isArray(prev) ? prev.filter(r => r.id !== id) : []);
     });
 
     return () => { socket.disconnect(); };
@@ -59,17 +75,16 @@ export default function DriverPanel() {
 
   // Update real-time location and directions
   useEffect(() => {
-    if (!isOnline) return;
+    if (!isOnline || !driver) return;
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLastLocation({ lat, lng });
         if (socket) {
-          // If we have an active delivery, send its ID too
-          const active = myDeliveries.find(d => d.order.status === 'OUT_FOR_DELIVERY');
+          const active = Array.isArray(myDeliveries) ? myDeliveries.find(d => d.order?.status === 'OUT_FOR_DELIVERY') : null;
           socket.emit('driver_location', { 
-            driverId: driver?.id, 
+            driverId: driver.id, 
             lat, 
             lng,
             orderId: active?.order_id,
@@ -86,7 +101,7 @@ export default function DriverPanel() {
 
   // Map route logic
   useEffect(() => {
-    const active = myDeliveries.find(d => d.order.status === 'OUT_FOR_DELIVERY');
+    const active = Array.isArray(myDeliveries) ? myDeliveries.find(d => d.order?.status === 'OUT_FOR_DELIVERY') : null;
     if (isLoaded && lastLocation && active?.order?.delivery_address) {
         const directionsService = new google.maps.DirectionsService();
         directionsService.route(
@@ -129,8 +144,8 @@ export default function DriverPanel() {
     const res = await fetch(`/api/driver/accept/${requestId}`, { method: 'POST', headers });
     if (res.ok) {
         const data = await res.json();
-        setMyDeliveries([data, ...myDeliveries]);
-        setRequests(requests.filter(r => r.id !== requestId));
+        setMyDeliveries(prev => Array.isArray(prev) ? [data, ...prev] : [data]);
+        setRequests(prev => Array.isArray(prev) ? prev.filter(r => r.id !== requestId) : []);
         setActiveTab('active');
         toast.success("✅ Corrida aceita!");
     } else {
@@ -142,7 +157,7 @@ export default function DriverPanel() {
   const finishDelivery = async (deliveryId: string) => {
     const res = await fetch(`/api/driver/finish/${deliveryId}`, { method: 'POST', headers });
     if (res.ok) {
-        setMyDeliveries(myDeliveries.filter(d => d.id !== deliveryId));
+        setMyDeliveries(prev => Array.isArray(prev) ? prev.filter(d => d.id !== deliveryId) : []);
         toast.success("🎉 Entrega concluída!");
         setActiveTab('requests');
     }
@@ -155,7 +170,7 @@ export default function DriverPanel() {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
   };
 
-  if (!driver) return null;
+  if (!driver) return <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-10"><div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mb-4"></div><p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Identificando Motorista...</p></div>;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-green-500/30">
@@ -188,7 +203,7 @@ export default function DriverPanel() {
               <button onClick={toggleOnline} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isOnline ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
                   {isOnline ? 'EM TURNO' : 'OFFLINE'}
               </button>
-              <button className="bg-slate-800 p-2 rounded-xl text-slate-400 border border-white/5"><X size={20}/></button>
+              <button onClick={() => { localStorage.removeItem('token'); window.location.href='/login/driver'; }} className="bg-slate-800 p-2 rounded-xl text-slate-400 border border-white/5"><X size={20}/></button>
           </div>
       </header>
 
@@ -233,7 +248,7 @@ export default function DriverPanel() {
           <div className="pb-32">
               {activeTab === 'requests' && (
                   <div className="space-y-4">
-                      {requests.length === 0 && (
+                      {currentRequests.length === 0 && (
                           <div className="text-center py-16 opacity-30 flex flex-col items-center">
                               <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
                                   <Bell size={32}/>
@@ -251,18 +266,18 @@ export default function DriverPanel() {
                             >
                               <div className="flex justify-between items-center mb-6">
                                   <div className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black">NOVO PEDIDO</div>
-                                  <span className="text-white font-black text-xl">R$ {req.order.delivery_fee.toFixed(2)}</span>
+                                  <span className="text-white font-black text-xl">R$ {req.order?.delivery_fee?.toFixed(2) || '0.00'}</span>
                               </div>
                               <div className="flex items-center gap-4 mb-6">
                                   <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">🍔</div>
                                   <div>
-                                      <h4 className="font-black text-white uppercase">{req.order.tenant.name}</h4>
+                                      <h4 className="font-black text-white uppercase">{req.order?.tenant?.name || 'Restaurante'}</h4>
                                       <p className="text-[10px] font-bold text-gray-500 tracking-widest">Loja de Origem</p>
                                   </div>
                               </div>
                               <div className="bg-black/40 p-4 rounded-3xl border border-white/5 mb-6">
                                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Destino</p>
-                                  <p className="font-bold text-sm text-slate-300">{req.order.delivery_address}</p>
+                                  <p className="font-bold text-sm text-slate-300">{req.order?.delivery_address}</p>
                               </div>
                               <button onClick={() => acceptRequest(req.id)} className="w-full bg-green-500 text-slate-950 py-5 rounded-[24px] font-black text-xs tracking-widest uppercase shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
                                   PEGAR PEDIDO <Zap size={20} fill="currentColor"/>
@@ -313,7 +328,7 @@ export default function DriverPanel() {
                                          <Navigation size={16}/> GPS EXTERNO
                                      </button>
                                      <div className="bg-slate-900/90 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-[10px] font-black text-green-400">
-                                         #{delivery.order.id.slice(-4)}
+                                         #{delivery.order?.id?.slice(-4)}
                                      </div>
                                 </div>
                              </div>
@@ -323,8 +338,8 @@ export default function DriverPanel() {
                                 <div className="flex items-center gap-5 mb-8">
                                     <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-3xl">🏠</div>
                                     <div>
-                                        <h4 className="text-2xl font-black text-white">{delivery.order.customer.name}</h4>
-                                        <p className="text-xs font-bold text-gray-500">Cliente • {delivery.order.payment_method}</p>
+                                        <h4 className="text-2xl font-black text-white">{delivery.order?.customer?.name || 'Cliente'}</h4>
+                                        <p className="text-xs font-bold text-gray-500">Cliente • {delivery.order?.payment_method}</p>
                                     </div>
                                 </div>
 
@@ -333,7 +348,7 @@ export default function DriverPanel() {
                                         <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Endereço</p>
                                         <MapPin size={14} className="text-blue-400"/>
                                     </div>
-                                    <p className="font-black text-slate-200 text-sm leading-tight">{delivery.order.delivery_address}</p>
+                                    <p className="font-black text-slate-200 text-sm leading-tight">{delivery.order?.delivery_address}</p>
                                 </div>
 
                                 <div className="flex gap-4">

@@ -724,6 +724,28 @@ app.post('/api/chat/send', authMiddleware, async (req: any, res) => {
 });
 
 // --- MOTOBODY API ---
+app.get('/api/driver/me', authMiddleware, async (req: any, res) => {
+    if (req.user.type !== 'DRIVER') return res.status(403).json({ error: 'Proibido' });
+    try {
+        const driver = await prisma.deliveryDriver.findUnique({ 
+            where: { id: req.user.driver_id } 
+        });
+        if (!driver) return res.status(404).json({ error: 'Driver não encontrado' });
+        
+        // Calculate balance
+        const aggregate = await prisma.transaction.groupBy({
+            by: ['type'],
+            where: { driver_id: req.user.driver_id },
+            _sum: { amount: true }
+        });
+        const earnings = aggregate.find(a => a.type === 'EARNING')?._sum.amount || 0;
+        const payouts = aggregate.find(a => a.type === 'PAYOUT')?._sum.amount || 0;
+        const balance = earnings - payouts;
+
+        res.json({ ...driver, balance });
+    } catch(e) { res.status(500).json({ error: 'Erro' }); }
+});
+
 app.post('/api/driver/login', async (req: any, res) => {
     try {
         const { phone, password } = req.body;
