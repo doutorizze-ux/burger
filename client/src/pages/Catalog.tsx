@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, CreditCard, Banknote, MapPin, CheckCircle2, X, Info, FastForward, Phone } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, CreditCard, Banknote, MapPin, CheckCircle2, X, FastForward } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 
