@@ -10,5 +10,7 @@ export const EVENTS = {
     NEW_ORDER: 'order:new',
     NEW_DELIVERY_REQUEST: 'delivery:new_request',
     DELIVERY_ACCEPTED: 'delivery:accepted',
-    DELIVERY_EXPIRED: 'delivery:expired'
+    DELIVERY_EXPIRED: 'delivery:expired',
+    WHATSAPP_QR: 'whatsapp:qr',
+    WHATSAPP_STATUS: 'whatsapp:status'
 };
