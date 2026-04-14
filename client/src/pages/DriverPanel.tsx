@@ -1,19 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'lucide-react';
+import { Bell, Wallet, Navigation, Phone, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { requestForToken, onMessageListener } from '../firebase';
-import { uberDarkMapStyle, uberMapStyle } from '../mapStyles';
+import { uberMapStyle } from '../mapStyles';
 
 let socket: any;
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
-  borderRadius: '32px'
-};
 
 export default function DriverPanel() {
   const [driver, setDriver] = useState<any>(null);
