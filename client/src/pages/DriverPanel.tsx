@@ -141,8 +141,9 @@ export default function DriverPanel() {
         directionsService.route(
             {
                 origin: lastLocation,
-                destination: dest,
+                destination: `${dest}, Brasil`, // Improve geocoding accuracy
                 travelMode: google.maps.TravelMode.DRIVING,
+                region: 'BR'
             },
             (result, status) => {
                 if (status === google.maps.DirectionsStatus.OK) {
@@ -150,7 +151,13 @@ export default function DriverPanel() {
                     setCurrentRouteTarget(dest);
                 } else {
                     console.error("Directions error:", status);
-                    toast.error("Não foi possível traçar a rota automática. Use o GPS externo.", { toastId: 'route-error' });
+                    let errorMsg = "Não foi possível traçar a rota automática. Use o GPS externo.";
+                    if (status === "REQUEST_DENIED") {
+                         errorMsg = "Erro: A api 'Directions API' do Google Maps não está ativada no seu console do Google Cloud.";
+                    } else if (status === "ZERO_RESULTS") {
+                         errorMsg = "Nenhuma rota terrestre encontrada entre você e o destino especificado.";
+                    }
+                    toast.error(errorMsg, { toastId: 'route-error' });
                     setCurrentRouteTarget(dest);
                 }
             }
