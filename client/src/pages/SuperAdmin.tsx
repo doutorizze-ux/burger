@@ -36,7 +36,8 @@ export default function SuperAdmin() {
     // Refresh drivers location every 10s
     const interval = setInterval(fetchDrivers, 10000);
 
-    const socket = io();
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const socket = io(apiUrl, { transports: ['websocket', 'polling'] });
     socket.emit('join', 'drivers_global');
     socket.on('delivery_update_location', (update: any) => {
         const { lat, lng, driverId, driver, orderId } = update;

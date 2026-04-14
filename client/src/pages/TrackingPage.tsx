@@ -30,7 +30,8 @@ export default function TrackingPage() {
           }
        });
 
-     const socket = io();
+     const apiUrl = import.meta.env.VITE_API_URL || '';
+     const socket = io(apiUrl, { transports: ['websocket', 'polling'] });
      socket.emit('join_tracking', orderId);
 
      socket.on('delivery_update_location', (loc) => {

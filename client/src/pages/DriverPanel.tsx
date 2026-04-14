@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'lucide-react';
@@ -25,6 +25,7 @@ export default function DriverPanel() {
   const [lastLocation, setLastLocation] = useState<any>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [currentRouteTarget, setCurrentRouteTarget] = useState<string | null>(null);
+  const lastEmitRef = useRef<number>(0);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -79,7 +80,8 @@ export default function DriverPanel() {
           else setMyDeliveries([]);
       });
 
-    socket = io();
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    socket = io(apiUrl, { transports: ['websocket', 'polling'] });
     socket.on('connect', () => {
         if (driver?.isOnline && lastLocation) {
              socket.emit('driver_online', { driverId: driver.id, lat: lastLocation.lat, lng: lastLocation.lng });
@@ -108,7 +110,10 @@ export default function DriverPanel() {
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLastLocation({ lat, lng });
-        if (socket) {
+        const now = Date.now();
+        // Max 5s throttle to avoid Prisma connection pooling/locking issues
+        if (socket && (now - lastEmitRef.current > 5000)) {
+          lastEmitRef.current = now;
           const active = Array.isArray(myDeliveries) ? myDeliveries.find(d => d.order?.status === 'OUT_FOR_DELIVERY') : null;
           socket.emit('driver_location', { 
             driverId: driver.id, 
@@ -120,7 +125,7 @@ export default function DriverPanel() {
         }
       },
       (err) => console.error(err),
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
