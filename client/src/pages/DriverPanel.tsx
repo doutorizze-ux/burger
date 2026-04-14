@@ -5,7 +5,7 @@ import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'l
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { requestForToken, onMessageListener } from '../firebase';
-import { darkMapStyle } from '../mapStyles';
+import { uberDarkMapStyle } from '../mapStyles';
 
 let socket: any;
 
@@ -230,12 +230,12 @@ export default function DriverPanel() {
                 center={lastLocation}
                 zoom={17}
                 options={{
-                    styles: darkMapStyle,
+                    styles: uberDarkMapStyle,
                     disableDefaultUI: true,
                     gestureHandling: 'none'
                 }}
              >
-                <Marker position={lastLocation} icon={{ url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", scaledSize: new window.google.maps.Size(40, 40) }} />
+                <Marker position={lastLocation} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png", scaledSize: new window.google.maps.Size(25, 41) }} />
              </GoogleMap>
          )}
          {!lastLocation && <div className="w-full h-full bg-slate-900 animate-pulse" />}
@@ -356,12 +356,13 @@ export default function DriverPanel() {
                                         center={lastLocation}
                                         zoom={16}
                                         options={{
-                                            styles: darkMapStyle,
+                                            styles: uberDarkMapStyle,
                                             disableDefaultUI: true,
                                         }}
                                     >
-                                        {directions && <DirectionsRenderer directions={directions} options={{ polylineOptions: { strokeColor: '#22c55e', strokeWeight: 6 } }} />}
-                                        <Marker position={lastLocation} icon={{ url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", scaledSize: new window.google.maps.Size(40, 40) }} />
+                                        {directions && <DirectionsRenderer directions={directions} options={{ suppressMarkers: true, polylineOptions: { strokeColor: '#0ea5e9', strokeWeight: 6, strokeOpacity: 0.8 } }} />}
+                                        <Marker position={lastLocation} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={50} />
+                                        {directions && <Marker position={directions.routes[0].legs[0].end_location} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={49} />}
                                     </GoogleMap>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-900">

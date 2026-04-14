@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
-import { uberMapStyle } from '../mapStyles';
+import { uberDarkMapStyle } from '../mapStyles';
 
 const mapContainerStyle = {
   width: '100%',
@@ -78,7 +78,7 @@ export default function TrackingPage() {
                     center={driverLocation}
                     zoom={15}
                     options={{
-                        styles: uberMapStyle,
+                        styles: uberDarkMapStyle,
                         zoomControl: false,
                         streetViewControl: false,
                         mapTypeControl: false,
@@ -89,18 +89,17 @@ export default function TrackingPage() {
                          <DirectionsRenderer 
                              directions={directions} 
                              options={{
-                                 polylineOptions: { strokeColor: '#f97316', strokeWeight: 5 },
-                                 suppressMarkers: false
+                                 polylineOptions: { strokeColor: '#0ea5e9', strokeWeight: 6, strokeOpacity: 0.8 },
+                                 suppressMarkers: true
                              }} 
                          />
                      )}
                     <Marker 
                         position={driverLocation} 
-                        icon={{
-                            url: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png",
-                            scaledSize: new window.google.maps.Size(40, 40)
-                        }}
+                        icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png", scaledSize: new window.google.maps.Size(25, 41) }}
+                        zIndex={50}
                     />
+                    {directions && <Marker position={directions.routes[0].legs[0].end_location} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={49} />}
                  </GoogleMap>
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center flex-col gap-4">
