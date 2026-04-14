@@ -92,7 +92,7 @@ export default function AdminPanel() {
     const apiUrl = import.meta.env.VITE_API_URL || '';
     socket = io(apiUrl, { transports: ['websocket', 'polling'] });
     socket.on('connect', () => {
-        if (user?.tenant_id) socket.emit('join', user.tenant_id);
+        if (user?.id) socket.emit('join', user.id);
         socket.emit('join', 'drivers_global');
     });
 
