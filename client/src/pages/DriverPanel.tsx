@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Wallet, Navigation, Phone, X } from 'lucide-react';
+import { Bell, Wallet, Navigation, Phone, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { requestForToken, onMessageListener } from '../firebase';
@@ -19,6 +19,7 @@ export default function DriverPanel() {
   const [lastLocation, setLastLocation] = useState<any>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [currentRouteTarget, setCurrentRouteTarget] = useState<string | null>(null);
+  const [isSheetExpanded, setIsSheetExpanded] = useState(true);
   const lastEmitRef = useRef<number>(0);
 
   const { isLoaded } = useJsApiLoader({
@@ -259,8 +260,19 @@ export default function DriverPanel() {
           </header>
 
           {/* BOTTOM SHEET */}
-          <main className="bg-white w-full rounded-t-[32px] shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.3)] pointer-events-auto flex flex-col max-h-[75vh]">
-              <div className="w-12 h-1.5 bg-slate-200 flex-shrink-0 rounded-full mx-auto my-3" />
+          <motion.main 
+             initial={false}
+             animate={{ y: isSheetExpanded ? '0%' : 'calc(100% - 95px)' }}
+             transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+             className="bg-white w-full rounded-t-[32px] shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.3)] pointer-events-auto flex flex-col h-[75vh]"
+          >
+              <div 
+                 className="w-full flex flex-col items-center justify-center pt-3 pb-2 cursor-pointer active:bg-slate-50 transition-colors rounded-t-[32px]"
+                 onClick={() => setIsSheetExpanded(!isSheetExpanded)}
+              >
+                  <div className="w-12 h-1.5 bg-slate-200 flex-shrink-0 rounded-full mb-1" />
+                  {isSheetExpanded ? <ChevronDown size={14} className="text-slate-300" /> : <ChevronUp size={14} className="text-slate-300" />}
+              </div>
 
               <div className="flex px-4 pb-0 border-b border-slate-100 flex-shrink-0">
                   {[
@@ -365,7 +377,7 @@ export default function DriverPanel() {
                       </div>
                   )}
               </div>
-          </main>
+          </motion.main>
       </div>
     </div>
   );
