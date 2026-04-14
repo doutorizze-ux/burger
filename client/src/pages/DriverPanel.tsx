@@ -5,7 +5,7 @@ import { Truck, Bell, Wallet, MapPin, Navigation, Phone, Zap, X, Clock } from 'l
 import { toast } from 'react-toastify';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import { requestForToken, onMessageListener } from '../firebase';
-import { uberDarkMapStyle } from '../mapStyles';
+import { uberDarkMapStyle, uberMapStyle } from '../mapStyles';
 
 let socket: any;
 
@@ -220,200 +220,159 @@ export default function DriverPanel() {
   if (!driver) return <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-10"><div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mb-4"></div><p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Identificando Motorista...</p></div>;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-green-500/30">
+    <div className="min-h-screen bg-slate-100 font-sans selection:bg-blue-500/30 overflow-hidden">
       
-      {/* Dynamic Uber-Like Background Map */}
-      <div className="fixed inset-0 z-0 opacity-40">
-         {isLoaded && lastLocation && (
+      {/* FULL SCREEN DYNAMIC MAP */}
+      <div className="fixed inset-0 z-0">
+         {isLoaded && lastLocation ? (
              <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
                 center={lastLocation}
                 zoom={17}
                 options={{
-                    styles: uberDarkMapStyle,
+                    styles: uberMapStyle,
                     disableDefaultUI: true,
-                    gestureHandling: 'none'
+                    gestureHandling: 'greedy'
                 }}
              >
-                <Marker position={lastLocation} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png", scaledSize: new window.google.maps.Size(25, 41) }} />
+                {directions && <DirectionsRenderer directions={directions} options={{ suppressMarkers: true, polylineOptions: { strokeColor: '#0ea5e9', strokeWeight: 6, strokeOpacity: 0.9 } }} />}
+                <Marker position={lastLocation} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={50} />
+                {directions && <Marker position={directions.routes[0].legs[0].end_location} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={49} />}
              </GoogleMap>
+         ) : (
+             <div className="w-full h-full bg-slate-200 animate-pulse flex flex-col items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+                <p className="font-bold text-slate-500 uppercase text-xs">Aguardando GPS...</p>
+             </div>
          )}
-         {!lastLocation && <div className="w-full h-full bg-slate-900 animate-pulse" />}
       </div>
 
-      <header className="relative z-10 p-6 flex justify-between items-center bg-gradient-to-b from-slate-900 to-transparent">
-          <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`} />
-              <h1 className="text-xl font-black italic tracking-tighter">FLUX<span className="text-green-500">DRIVER</span></h1>
-          </div>
-          <div className="flex gap-3">
-              <button onClick={toggleOnline} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isOnline ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-800 text-slate-400 border border-white/5'}`}>
-                  {isOnline ? 'EM TURNO' : 'OFFLINE'}
-              </button>
-              <button onClick={() => { localStorage.removeItem('token'); window.location.href='/login/driver'; }} className="bg-slate-800 p-2 rounded-xl text-slate-400 border border-white/5"><X size={20}/></button>
-          </div>
-      </header>
-
-      <main className="relative z-10 p-6 pt-2">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="bg-slate-900/60 backdrop-blur-xl p-5 rounded-[32px] border border-white/5">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Clock size={14}/>
-                    <span className="text-[10px] font-black uppercase tracking-widest">Hoje</span>
-                  </div>
-                  <p className="text-3xl font-black">{activeDeliveries.length}</p>
-                  <p className="text-[10px] font-bold text-gray-600 uppercase">Corridas</p>
+      {/* FLOATING UI OVERLAY */}
+      <div className="fixed inset-0 z-10 flex flex-col justify-between pointer-events-none">
+          
+          {/* FLOATING HEADER */}
+          <header className="p-5 flex justify-between items-start pointer-events-auto pt-8">
+              <div className="bg-white/90 backdrop-blur-md px-4 py-3 rounded-full shadow-lg flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-slate-300'}`} />
+                  <h1 className="text-sm font-black italic tracking-tighter text-slate-800">FLUX<span className="text-blue-500">DRIVER</span></h1>
               </div>
-              <div className="bg-slate-900/60 backdrop-blur-xl p-5 rounded-[32px] border border-white/5">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Zap size={14} className="text-yellow-500"/>
-                    <span className="text-[10px] font-black uppercase tracking-widest">Ganhos</span>
-                  </div>
-                  <p className="text-3xl font-black text-green-500">R$ {(driver.balance || 0).toFixed(2)}</p>
-                  <p className="text-[10px] font-bold text-gray-600 uppercase">Estimados</p>
+              <div className="flex flex-col gap-2">
+                  <button onClick={toggleOnline} className={`px-5 py-3 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg transition-all ${isOnline ? 'bg-blue-600 text-white' : 'bg-white text-slate-500'}`}>
+                      {isOnline ? 'EM TURNO' : 'OFFLINE'}
+                  </button>
+                  <button onClick={() => { localStorage.removeItem('token'); window.location.href='/login/driver'; }} className="bg-white p-3 rounded-full text-slate-400 shadow-lg self-end active:scale-95"><X size={18}/></button>
               </div>
-          </div>
+          </header>
 
-          {/* Tab Navigation */}
-          <div className="bg-slate-900/80 backdrop-blur-2xl p-2 rounded-[32px] flex mb-8 border border-white/5">
-              {[
-                { id: 'requests', label: 'PEDIDOS', icon: Bell },
-                { id: 'active', label: 'ATIVO', icon: Navigation },
-                { id: 'wallet', label: 'CARTEIRA', icon: Wallet }
-              ].map(tab => (
-                <button 
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-[24px] font-black text-[10px] tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500'}`}
-                >
-                  <tab.icon size={16}/> {tab.label}
-                </button>
-              ))}
-          </div>
+          {/* BOTTOM SHEET */}
+          <main className="bg-white w-full rounded-t-[32px] shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.3)] pointer-events-auto flex flex-col max-h-[75vh]">
+              <div className="w-12 h-1.5 bg-slate-200 flex-shrink-0 rounded-full mx-auto my-3" />
 
-          <div className="pb-32">
-              {activeTab === 'requests' && (
-                  <div className="space-y-4">
-                      {currentRequests.length === 0 && (
-                          <div className="text-center py-16 opacity-30 flex flex-col items-center">
-                              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
-                                  <Bell size={32}/>
+              <div className="flex px-4 pb-0 border-b border-slate-100 flex-shrink-0">
+                  {[
+                    { id: 'requests', label: 'PEDIDOS', icon: Bell },
+                    { id: 'active', label: 'ROTA', icon: Navigation },
+                    { id: 'wallet', label: 'CARTEIRA', icon: Wallet }
+                  ].map(tab => (
+                    <button 
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex-1 flex flex-col items-center justify-center gap-1 pb-3 pt-2 font-black text-[10px] tracking-widest transition-all ${activeTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400'}`}
+                    >
+                      <tab.icon size={20} className={activeTab === tab.id ? "text-blue-600" : "text-slate-300"} />
+                      {tab.label}
+                    </button>
+                  ))}
+              </div>
+
+              <div className="overflow-y-auto px-6 py-6 pb-12 flex-1">
+                  {activeTab === 'requests' && (
+                      <div className="space-y-4">
+                          {currentRequests.length === 0 && (
+                              <div className="text-center py-10 opacity-60 flex flex-col items-center">
+                                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4"><Bell size={24}/></div>
+                                  <p className="font-bold text-sm text-slate-500">Procurando viagens...</p>
                               </div>
-                              <p className="font-bold text-sm">Aguardando novos pedidos...</p>
-                          </div>
-                      )}
-                      <AnimatePresence>
-                        {currentRequests.map(req => (
-                            <motion.div 
-                              key={req.id} 
-                              initial={{ y: 20, opacity: 0 }} 
-                              animate={{ y: 0, opacity: 1 }}
-                              className="bg-slate-900 p-6 rounded-[40px] border border-white/5 shadow-2xl"
-                            >
-                              <div className="flex justify-between items-center mb-6">
-                                  <div className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black">NOVO PEDIDO</div>
-                                  <span className="text-white font-black text-xl">R$ {req.order?.delivery_fee?.toFixed(2) || '0.00'}</span>
-                              </div>
-                              <div className="flex items-center gap-4 mb-6">
-                                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">🍔</div>
-                                  <div>
-                                      <h4 className="font-black text-white uppercase">{req.order?.tenant?.name || 'Restaurante'}</h4>
-                                      <p className="text-[10px] font-bold text-gray-500 tracking-widest">Loja de Origem</p>
+                          )}
+                          <AnimatePresence>
+                            {currentRequests.map(req => (
+                                <motion.div key={req.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white border-2 border-slate-100 p-5 rounded-3xl shadow-sm">
+                                  <div className="flex justify-between items-center mb-5">
+                                      <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">NOVA CORRIDA</div>
+                                      <span className="text-slate-800 font-black text-2xl">R$ {req.order?.delivery_fee?.toFixed(2) || '0.00'}</span>
                                   </div>
-                              </div>
-                              <div className="bg-black/40 p-4 rounded-3xl border border-white/5 mb-6">
-                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Destino</p>
-                                  <p className="font-bold text-sm text-slate-300">{req.order?.delivery_address}</p>
-                              </div>
-                              <button onClick={() => acceptRequest(req.id)} className="w-full bg-green-500 text-slate-950 py-5 rounded-[24px] font-black text-xs tracking-widest uppercase shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-                                  PEGAR PEDIDO <Zap size={20} fill="currentColor"/>
-                              </button>
-                            </motion.div>
-                        ))}
-                      </AnimatePresence>
-                  </div>
-              )}
+                                  <div className="flex flex-col gap-0 mb-6 relative">
+                                      <div className="absolute left-1.5 top-3.5 bottom-3 border-l-2 border-dashed border-slate-200"></div>
+                                      <div className="flex items-center gap-4 py-1 z-10">
+                                          <div className="w-3 h-3 bg-slate-800 rounded-full flex-shrink-0 border-2 border-white ring-2 ring-slate-100" />
+                                          <div className="flex pr-2 items-center">
+                                              <p className="font-bold text-slate-800 text-sm truncate">{req.order?.tenant?.name || 'Origem Restaurante'}</p>
+                                          </div>
+                                      </div>
+                                      <div className="flex items-center gap-4 py-1 z-10 mt-3">
+                                          <div className="w-3 h-3 bg-blue-500 rounded-sm flex-shrink-0 border-2 border-white ring-2 ring-blue-100" />
+                                          <div className="flex pr-2 items-center">
+                                              <p className="font-regular text-slate-600 text-sm line-clamp-2">{req.order?.delivery_address}</p>
+                                          </div>
+                                      </div>
+                                  </div>
+                                  <button onClick={() => acceptRequest(req.id)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-[12px] tracking-widest uppercase shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all">
+                                      ACEITAR VIAGEM
+                                  </button>
+                                </motion.div>
+                            ))}
+                          </AnimatePresence>
+                      </div>
+                  )}
 
-              {activeTab === 'active' && (
-                  <div className="space-y-6">
-                      {activeDeliveries.length === 0 && (
-                          <div className="text-center py-16 opacity-30 flex flex-col items-center">
-                              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
-                                  <Truck size={32}/>
+                  {activeTab === 'active' && (
+                      <div className="space-y-4">
+                          {activeDeliveries.length === 0 && (
+                              <div className="text-center py-10 opacity-60 flex flex-col items-center">
+                                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4"><Navigation size={24}/></div>
+                                  <p className="font-bold text-sm text-slate-500">Nenhuma viagem ativa.</p>
                               </div>
-                              <p className="font-bold text-sm">Nenhuma entrega em curso.</p>
-                          </div>
-                      )}
-                      
-                      {activeDeliveries.map(delivery => (
-                          <div key={delivery.id} className="space-y-4">
-                             {/* Floating Interactive Map */}
-                             <div className="h-[500px] w-full bg-slate-800 rounded-[48px] overflow-hidden border-4 border-slate-900 shadow-2xl relative">
-                                {isLoaded && lastLocation ? (
-                                    <GoogleMap
-                                        mapContainerStyle={mapContainerStyle}
-                                        center={lastLocation}
-                                        zoom={16}
-                                        options={{
-                                            styles: uberDarkMapStyle,
-                                            disableDefaultUI: true,
-                                        }}
-                                    >
-                                        {directions && <DirectionsRenderer directions={directions} options={{ suppressMarkers: true, polylineOptions: { strokeColor: '#0ea5e9', strokeWeight: 6, strokeOpacity: 0.8 } }} />}
-                                        <Marker position={lastLocation} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={50} />
-                                        {directions && <Marker position={directions.routes[0].legs[0].end_location} icon={{ url: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png", scaledSize: new window.google.maps.Size(25, 41) }} zIndex={49} />}
-                                    </GoogleMap>
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-900">
-                                        <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Iniciando Navegação...</p>
-                                    </div>
-                                )}
-                                
-                                <div className="absolute top-6 left-6 right-6 flex justify-between">
-                                     <button onClick={() => openInMaps(delivery.order.delivery_address)} className="bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase flex items-center gap-2 shadow-xl active:scale-95">
-                                         <Navigation size={16}/> GPS EXTERNO
+                          )}
+                          {activeDeliveries.map(delivery => (
+                              <div key={delivery.id} className="bg-white">
+                                 <div className="flex justify-between items-center mb-6">
+                                     <h3 className="font-black text-2xl text-slate-800">{delivery.order?.customer?.name || 'Cliente'}</h3>
+                                     <button onClick={() => openInMaps(delivery.order.delivery_address)} className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-black text-[10px] uppercase flex items-center gap-2 active:scale-95 shadow-sm border border-blue-100">
+                                         <Navigation size={14}/> GPS APP
                                      </button>
-                                     <div className="bg-slate-900/90 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-[10px] font-black text-green-400">
-                                         #{delivery.order?.id?.slice(-4)}
-                                     </div>
-                                </div>
-                             </div>
+                                 </div>
+                                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
+                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Destino</p>
+                                     <p className="font-bold text-slate-700 text-sm leading-tight">{delivery.order?.delivery_address}</p>
+                                 </div>
+                                 <div className="flex gap-3">
+                                     <button onClick={() => finishDelivery(delivery.id)} className="flex-[3] bg-slate-900 text-white py-4 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                                         FINALIZAR CORRIDA
+                                     </button>
+                                     <button className="flex-1 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center active:scale-95 transition-all border border-slate-200">
+                                         <Phone size={22}/>
+                                     </button>
+                                 </div>
+                              </div>
+                          ))}
+                      </div>
+                  )}
 
-                             {/* Delivery Details Card */}
-                             <div className="bg-slate-900 p-8 rounded-[48px] border border-white/5 shadow-2xl">
-                                <div className="flex items-center gap-5 mb-8">
-                                    <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-3xl">🏠</div>
-                                    <div>
-                                        <h4 className="text-2xl font-black text-white">{delivery.order?.customer?.name || 'Cliente'}</h4>
-                                        <p className="text-xs font-bold text-gray-500">Cliente • {delivery.order?.payment_method}</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-black/30 p-6 rounded-[32px] border border-white/5 mb-8">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Endereço</p>
-                                        <MapPin size={14} className="text-blue-400"/>
-                                    </div>
-                                    <p className="font-black text-slate-200 text-sm leading-tight">{delivery.order?.delivery_address}</p>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <button onClick={() => finishDelivery(delivery.id)} className="flex-[2] bg-green-500 text-slate-950 py-6 rounded-3xl font-black text-sm tracking-widest uppercase shadow-lg shadow-green-500/20 active:scale-95 transition-all">
-                                        ENTREGUE ✅
-                                    </button>
-                                    <button className="flex-1 bg-slate-800 text-white rounded-3xl flex items-center justify-center border border-white/5 active:scale-95 transition-all">
-                                        <Phone size={24}/>
-                                    </button>
-                                </div>
-                             </div>
+                  {activeTab === 'wallet' && (
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 shadow-sm text-center">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-2">Corridas</p>
+                              <p className="text-4xl font-black text-slate-800 mb-2">{activeDeliveries.length}</p>
                           </div>
-                      ))}
-                  </div>
-              )}
-          </div>
-      </main>
+                          <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100 shadow-sm text-center">
+                              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 mt-2">Ganhos</p>
+                              <p className="text-2xl font-black text-blue-600 mb-2 mt-4">R$ {(driver.balance || 0).toFixed(2)}</p>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </main>
+      </div>
     </div>
   );
 }
