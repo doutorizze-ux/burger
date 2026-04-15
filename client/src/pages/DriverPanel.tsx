@@ -208,6 +208,10 @@ export default function DriverPanel() {
   const activeDeliveries = Array.isArray(myDeliveries) ? myDeliveries.filter(d => d.order?.status !== 'DELIVERED') : [];
   const currentRequests = Array.isArray(requests) ? requests.filter(r => r.status === 'PENDING') : [];
 
+  const openInMaps = (address: string) => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
+  };
+
   if (!driver) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-10">
        <img src="/driver-logo.png" alt="Logo" className="w-32 h-32 rounded-3xl object-contain mb-8 shadow-[0_0_60px_rgba(255,204,0,0.4)] animate-pulse" />
