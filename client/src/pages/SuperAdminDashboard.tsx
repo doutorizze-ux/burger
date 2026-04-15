@@ -258,7 +258,7 @@ export const SuperAdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-slate-100">
-            <nav className="bg-slate-900 text-white p-4 shadow-lg">
+            <nav className="bg-black text-white p-4 shadow-lg">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center font-bold">
@@ -286,7 +286,7 @@ export const SuperAdminDashboard = () => {
                     <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="text-slate-500 font-bold text-sm">Total Academias</h3>
-                            <Store className="text-blue-500" size={20} />
+                            <Store className="text-black" size={20} />
                         </div>
                         <p className="text-3xl font-bold text-slate-800">{stats?.totalGyms || 0}</p>
                     </div>
@@ -315,10 +315,10 @@ export const SuperAdminDashboard = () => {
 
                 {/* Main Tabs Navigation */}
                 <div className="flex gap-4 mb-8">
-                    <button onClick={() => setActiveTab('gyms')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'gyms' ? "bg-slate-900 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>ACADEMIAS</button>
-                    <button onClick={() => setActiveTab('plans')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'plans' ? "bg-slate-900 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>PLANOS SAAS</button>
-                    <button onClick={() => setActiveTab('finance')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'finance' ? "bg-slate-900 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>FINANCEIRO</button>
-                    <button onClick={() => setActiveTab('settings')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'settings' ? "bg-slate-900 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>SISTEMA</button>
+                    <button onClick={() => setActiveTab('gyms')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'gyms' ? "bg-black text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>ACADEMIAS</button>
+                    <button onClick={() => setActiveTab('plans')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'plans' ? "bg-black text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>PLANOS SAAS</button>
+                    <button onClick={() => setActiveTab('finance')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'finance' ? "bg-black text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>FINANCEIRO</button>
+                    <button onClick={() => setActiveTab('settings')} className={clsx("px-6 py-2 rounded-lg font-black transition-all", activeTab === 'settings' ? "bg-black text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>SISTEMA</button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-8">
@@ -371,10 +371,10 @@ export const SuperAdminDashboard = () => {
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-right flex justify-end gap-1">
-                                                    <button onClick={() => handleEditTenant(tenant)} className="p-2 text-blue-500 hover:bg-blue-50 rounded" title="Editar">
+                                                    <button onClick={() => handleEditTenant(tenant)} className="p-2 text-black hover:bg-slate-100 rounded" title="Editar">
                                                         <Pencil size={18} />
                                                     </button>
-                                                    <button onClick={() => handleToggle(tenant.id)} className={`p-2 rounded ${tenant.status === 'ACTIVE' ? 'text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:bg-green-50'}`} title={tenant.status === 'ACTIVE' ? 'Bloquear' : 'Ativar'}>
+                                                    <button onClick={() => handleToggle(tenant.id)} className={`p-2 rounded ${tenant.status === 'ACTIVE' ? 'text-black hover:bg-slate-100' : 'text-green-500 hover:bg-green-50'}`} title={tenant.status === 'ACTIVE' ? 'Bloquear' : 'Ativar'}>
                                                         <Power size={18} />
                                                     </button>
                                                     <button onClick={() => handleDisconnect(tenant.id)} className="p-2 text-slate-500 hover:bg-slate-100 rounded" title="Desconectar WhatsApp">
@@ -397,7 +397,7 @@ export const SuperAdminDashboard = () => {
                         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                                 <h2 className="text-xl font-bold text-slate-800">Planos SaaS</h2>
-                                <button onClick={() => setShowPlanModal(true)} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition">
+                                <button onClick={() => setShowPlanModal(true)} className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition">
                                     + Novo Plano
                                 </button>
                             </div>
@@ -449,7 +449,7 @@ export const SuperAdminDashboard = () => {
                                 <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
                                     <div className="flex justify-between items-center mb-2">
                                         <h3 className="text-slate-500 font-bold text-sm">Pendente</h3>
-                                        <Activity className="text-orange-500" size={20} />
+                                        <Activity className="text-black" size={20} />
                                     </div>
                                     <p className="text-3xl font-bold text-slate-800">
                                         R$ {financeData?.summary?.pending_revenue?.toFixed(2) || '0.00'}
@@ -566,7 +566,7 @@ export const SuperAdminDashboard = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <button type="submit" className="bg-slate-900 text-white px-8 py-3 rounded-lg font-bold hover:bg-slate-800 transition shadow-lg">
+                                    <button type="submit" className="bg-black text-white px-8 py-3 rounded-lg font-bold hover:bg-slate-800 transition shadow-lg">
                                         Salvar Configurações
                                     </button>
                                 </div>
@@ -645,7 +645,7 @@ export const SuperAdminDashboard = () => {
 
                                     <div className="flex justify-end gap-2 mt-6">
                                         <button type="button" onClick={() => setShowTenantModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">Cancelar</button>
-                                        <button type="submit" className="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800">Salvar Alterações</button>
+                                        <button type="submit" className="px-4 py-2 bg-black text-white rounded hover:bg-slate-800">Salvar Alterações</button>
                                     </div>
                                 </form>
                             </div>
@@ -694,7 +694,7 @@ export const SuperAdminDashboard = () => {
                                     </div>
                                     <div className="flex justify-end gap-2 mt-6">
                                         <button type="button" onClick={() => setShowPlanModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">Cancelar</button>
-                                        <button type="submit" className="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800">Criar Plano</button>
+                                        <button type="submit" className="px-4 py-2 bg-black text-white rounded hover:bg-slate-800">Criar Plano</button>
                                     </div>
                                 </form>
                             </div>

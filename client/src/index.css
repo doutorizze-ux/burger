@@ -4,8 +4,8 @@
 
 :root {
   font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --primary-color: #f97316;
-  --primary-rgb: 249 115 22;
+  --primary-color: #FFCC00;
+  --primary-rgb: 255 204 0;
 }
 
 body {

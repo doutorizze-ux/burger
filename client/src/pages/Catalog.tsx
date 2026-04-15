@@ -164,7 +164,7 @@ export default function Catalog() {
       </div>
       <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">PEDIDO REALIZADO!</h2>
       <p className="text-gray-500 mb-10 text-lg">Seu pedido foi recebido pela <b>{tenant.name}</b>.<br/>Fique de olho no seu WhatsApp para atualizações!</p>
-      <button onClick={() => setOrderDone(false)} className="w-full max-w-xs py-5 bg-orange-500 text-white rounded-3xl font-black shadow-xl shadow-orange-500/30 text-lg uppercase tracking-widest">Ver Cardápio</button>
+      <button onClick={() => setOrderDone(false)} className="w-full max-w-xs py-5 bg-primary text-black rounded-3xl font-black shadow-xl shadow-black/20 text-lg uppercase tracking-widest">Ver Cardápio</button>
     </motion.div>
   );
 
@@ -184,7 +184,7 @@ export default function Catalog() {
            <div className="mb-2">
               <h1 className="text-3xl font-black text-gray-900 tracking-tighter leading-none mb-2">{tenant.name}</h1>
               <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black text-orange-600 border border-orange-100 flex items-center gap-1">
+                <span className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black text-black border border-orange-100 flex items-center gap-1">
                    <MapPin size={10}/> ENTREGA: R$ {tenant.delivery_fee?.toFixed(2)}
                 </span>
                 <span className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black text-gray-500 border border-gray-100 italic">
@@ -198,7 +198,7 @@ export default function Catalog() {
       {/* Categories Bar */}
       <div className="sticky top-0 bg-white/80 backdrop-blur-xl z-30 py-4 px-6 overflow-x-auto border-b border-slate-100 flex gap-4 scrollbar-hide">
           {categories.map(c => (
-            <a key={c.id} href={`#cat-${c.id}`} className="min-w-max px-5 py-2.5 bg-slate-50 hover:bg-orange-500 hover:text-white rounded-2xl text-slate-600 font-black text-xs uppercase tracking-widest transition-all">
+            <a key={c.id} href={`#cat-${c.id}`} className="min-w-max px-5 py-2.5 bg-slate-50 hover:bg-slate-1000 hover:text-white rounded-2xl text-slate-600 font-black text-xs uppercase tracking-widest transition-all">
               {c.name}
             </a>
           ))}
@@ -209,7 +209,7 @@ export default function Catalog() {
         {categories.map(c => (
           <div key={c.id} id={`cat-${c.id}`} className="scroll-mt-24">
             <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3">
-               <span className="w-2 h-8 bg-orange-500 rounded-full" /> {c.name.toUpperCase()}
+               <span className="w-2 h-8 bg-slate-1000 rounded-full" /> {c.name.toUpperCase()}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {c.products.map((p: any) => (
@@ -220,11 +220,11 @@ export default function Catalog() {
                   className="flex bg-white p-5 rounded-[32px] shadow-sm border border-slate-100 cursor-pointer hover:shadow-xl transition-all relative group"
                 >
                   <div className="flex-1 pr-4">
-                    <h3 className="font-black text-gray-800 text-lg tracking-tight mb-1 group-hover:text-orange-500 transition-colors uppercase">{p.name}</h3>
+                    <h3 className="font-black text-gray-800 text-lg tracking-tight mb-1 group-hover:text-black transition-colors uppercase">{p.name}</h3>
                     <p className="text-xs text-gray-400 font-medium line-clamp-2 mb-4 leading-relaxed">{p.description}</p>
                     <div className="flex items-center justify-between">
                        <span className="font-black text-xl text-green-600">R$ {p.price.toFixed(2)}</span>
-                       <div className="bg-orange-100 text-orange-600 p-2 rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+                       <div className="bg-orange-100 text-black p-2 rounded-xl group-hover:bg-slate-1000 group-hover:text-white transition-all">
                           <Plus size={18} />
                        </div>
                     </div>
@@ -268,12 +268,12 @@ export default function Catalog() {
                     <div className="space-y-4">
                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Turbine seu pedido (Extras)</h4>
                        {selectedProduct.extras.map((ex: any) => (
-                         <div key={ex.id} onClick={()=>toggleExtra(ex)} className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex justify-between items-center ${tempExtras.find(e=>e.id===ex.id) ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-slate-100 hover:border-slate-200'}`}>
+                         <div key={ex.id} onClick={()=>toggleExtra(ex)} className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex justify-between items-center ${tempExtras.find(e=>e.id===ex.id) ? 'border-orange-500 bg-slate-100 shadow-md' : 'border-slate-100 hover:border-slate-200'}`}>
                             <div>
-                               <p className={`font-black uppercase text-sm ${tempExtras.find(e=>e.id===ex.id) ? 'text-orange-600' : 'text-slate-700'}`}>{ex.name}</p>
+                               <p className={`font-black uppercase text-sm ${tempExtras.find(e=>e.id===ex.id) ? 'text-black' : 'text-slate-700'}`}>{ex.name}</p>
                                <p className="text-xs font-bold text-green-600">+ R$ {ex.price.toFixed(2)}</p>
                             </div>
-                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${tempExtras.find(e=>e.id===ex.id) ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-200'}`}>
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${tempExtras.find(e=>e.id===ex.id) ? 'bg-slate-1000 border-orange-500 text-white' : 'border-slate-200'}`}>
                                {tempExtras.find(e=>e.id===ex.id) ? <CheckCircle2 size={16}/> : <Plus size={16}/>}
                             </div>
                          </div>
@@ -290,7 +290,7 @@ export default function Catalog() {
                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Total do Item</p>
                      <p className="text-2xl font-black text-gray-900 leading-none">R$ {(selectedProduct.price + tempExtras.reduce((acc,e)=>acc+e.price,0)).toFixed(2)}</p>
                   </div>
-                  <button onClick={confirmAddToCart} className="flex-[2] bg-orange-500 text-white rounded-2xl font-black shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all flex items-center justify-center gap-3 active:scale-95 text-xs tracking-widest">
+                  <button onClick={confirmAddToCart} className="flex-[2] bg-primary text-black rounded-2xl font-black shadow-lg shadow-black/20 hover:bg-primary border-black border transition-all flex items-center justify-center gap-3 active:scale-95 text-xs tracking-widest">
                      ADICIONAR AGORA <ShoppingBag size={18}/>
                   </button>
                </div>
@@ -303,9 +303,9 @@ export default function Catalog() {
       <AnimatePresence>
         {cart.length > 0 && (
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="fixed bottom-0 left-0 right-0 z-50 p-6 bg-white/70 backdrop-blur-xl border-t border-slate-200">
-            <button onClick={() => setIsCartOpen(true)} className="w-full max-w-4xl mx-auto bg-slate-900 text-white rounded-3xl p-5 shadow-2xl flex items-center justify-between font-black text-xs tracking-widest uppercase hover:bg-slate-800 transition-all active:scale-[0.98]">
+            <button onClick={() => setIsCartOpen(true)} className="w-full max-w-4xl mx-auto bg-black text-white rounded-3xl p-5 shadow-2xl flex items-center justify-between font-black text-xs tracking-widest uppercase hover:bg-slate-800 transition-all active:scale-[0.98]">
               <div className="flex items-center gap-4">
-                <div className="bg-orange-500 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg">{cart.length}</div>
+                <div className="bg-primary text-black w-10 h-10 rounded-xl flex items-center justify-center text-lg">{cart.length}</div>
                 <span>Ver sacola de lanches</span>
               </div>
               <span className="text-xl">R$ {total.toFixed(2)}</span>
@@ -335,10 +335,10 @@ export default function Catalog() {
                            {c.selectedExtras.map((e:any) => <div key={e.id}>+ {e.name} (+ R$ {e.price.toFixed(2)})</div>)}
                            {c.selectedExtras.length === 0 && <div>Lanche Original</div>}
                         </div>
-                        <p className="text-lg font-black text-orange-500 mt-2">R$ {(c.totalPrice * c.quantity).toFixed(2)}</p>
+                        <p className="text-lg font-black text-black mt-2">R$ {(c.totalPrice * c.quantity).toFixed(2)}</p>
                       </div>
                       <div className="flex flex-col items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                        <button onClick={()=>updateQty(c.cartId, 1)} className="text-orange-500 hover:scale-110 active:scale-90 transition-all"><Plus size={20}/></button>
+                        <button onClick={()=>updateQty(c.cartId, 1)} className="text-black hover:scale-110 active:scale-90 transition-all"><Plus size={20}/></button>
                         <span className="font-black text-lg w-6 text-center">{c.quantity}</span>
                         <button onClick={()=>updateQty(c.cartId, -1)} className="text-slate-300 hover:text-red-400 transition-all"><Minus size={20}/></button>
                       </div>
@@ -356,7 +356,7 @@ export default function Catalog() {
                       </div>
                       <div className="col-span-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-2 block">WhatsApp</label>
-                        <input required placeholder="(62) 99999-9999" className="w-full p-5 rounded-[24px] bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 font-bold text-blue-600" value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} />
+                        <input required placeholder="(62) 99999-9999" className="w-full p-5 rounded-[24px] bg-slate-50 border border-slate-200 outline-none focus:border-orange-500 font-bold text-black" value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} />
                       </div>
                     </div>
                   )}
@@ -386,7 +386,7 @@ export default function Catalog() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3 block flex items-center gap-2"><CreditCard size={12}/> Como vai pagar?</label>
                     <div className="flex gap-4">
                       {['PIX', 'CARTÃO', 'DINHEIRO'].map(m => (
-                        <label key={m} className={`flex-1 p-5 rounded-[28px] border-2 flex flex-col items-center gap-2 cursor-pointer transition-all ${payment === m ? 'border-orange-500 bg-orange-50/50 text-orange-600 scale-[1.02] shadow-lg shadow-orange-500/10' : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60'}`}>
+                        <label key={m} className={`flex-1 p-5 rounded-[28px] border-2 flex flex-col items-center gap-2 cursor-pointer transition-all ${payment === m ? 'border-orange-500 bg-slate-100/50 text-black scale-[1.02] shadow-lg shadow-black/20' : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60'}`}>
                           <input type="radio" className="hidden" checked={payment===m} onChange={()=>setPayment(m)}/>
                           {m === 'PIX' ? <FastForward size={24}/> : m === 'DINHEIRO' ? <Banknote size={24}/> : <CreditCard size={24}/>}
                           <span className="font-black text-[10px] uppercase tracking-widest">{m}</span>
@@ -409,7 +409,7 @@ export default function Catalog() {
                 <button 
                    disabled={isPlacingOrder}
                    onClick={placeOrder} 
-                   className={`w-full bg-orange-500 text-white py-6 rounded-3xl font-black text-lg shadow-2xl shadow-orange-500/30 hover:bg-orange-600 transition-all active:scale-[0.98] ${isPlacingOrder ? 'opacity-50' : ''}`}
+                   className={`w-full bg-primary text-black py-6 rounded-3xl font-black text-lg shadow-2xl shadow-black/20 hover:bg-primary border-black border transition-all active:scale-[0.98] ${isPlacingOrder ? 'opacity-50' : ''}`}
                 >
                   {isPlacingOrder ? 'PROCESSANDO...' : 'FINALIZAR E ENVIAR 🚀'}
                 </button>

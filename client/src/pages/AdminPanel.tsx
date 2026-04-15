@@ -336,10 +336,22 @@ export default function AdminPanel() {
             <span className="font-black">NOVO PEDIDO! CLIQUE PARA PARAR O ALERTA</span>
          </div>
        )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-80 bg-slate-900 text-slate-400 p-8 flex flex-col gap-8 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      {/* Mobile Backdrop */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+             initial={{ opacity: 0 }} 
+             animate={{ opacity: 1 }} 
+             exit={{ opacity: 0 }} 
+             onClick={() => setIsMobileMenuOpen(false)} 
+             className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden cursor-pointer"
+          />
+        )}
+      </AnimatePresence>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-80 bg-black text-slate-300 p-8 flex flex-col gap-8 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="flex items-center justify-between lg:justify-start gap-4 px-2">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl shadow-lg shadow-orange-500/30 overflow-hidden flex items-center justify-center bg-orange-500 text-white font-bold text-xl">
+            <div className="w-12 h-12 rounded-2xl shadow-lg shadow-black/20 overflow-hidden flex items-center justify-center bg-primary text-black font-bold text-xl">
                {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : "🍔"}
             </div>
             <div>
@@ -353,28 +365,28 @@ export default function AdminPanel() {
         </div>
 
         <nav className="flex flex-col gap-2 flex-1 pt-4 overflow-y-auto">
-          <button onClick={()=>{setActiveTab('dashboard'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='dashboard'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('dashboard'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='dashboard'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <LayoutDashboard size={20}/> Dashboard
           </button>
-          <button onClick={()=>{setActiveTab('orders'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='orders'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('orders'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='orders'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Clock size={20}/> Pedidos Ativos
           </button>
-          <button onClick={()=>{setActiveTab('catalog'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='catalog'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('catalog'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='catalog'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <PlusCircle size={20}/> Cardápio Digital
           </button>
-          <button onClick={()=>{setActiveTab('chats'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='chats'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('chats'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='chats'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Bell size={20}/> Chat ao Vivo
           </button>
-          <button onClick={()=>{setActiveTab('drivers'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='drivers'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('drivers'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='drivers'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Truck size={20}/> Rede Entrega (Uber)
           </button>
-          <button onClick={()=>{setActiveTab('reports'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='reports'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('reports'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='reports'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <TrendingUp size={20}/> Relatórios
           </button>
-          <button onClick={()=>{setActiveTab('marketing'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='marketing'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('marketing'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='marketing'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Ticket size={20}/> Cupons (Marketing)
           </button>
-          <button onClick={()=>{setActiveTab('settings'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='settings'?'bg-orange-500 text-white shadow-md shadow-orange-500/20': 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={()=>{setActiveTab('settings'); setIsMobileMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium transition-all ${activeTab==='settings'?'bg-primary text-black shadow-md shadow-black/20': 'hover:bg-slate-800 hover:text-white'}`}>
             <Settings size={20}/> Configurações
           </button>
           <button onClick={() => { localStorage.removeItem('token'); window.location.href='/'; }} className="w-full mt-auto flex items-center gap-3 px-4 py-3.5 rounded-2xl font-medium text-red-400 hover:bg-red-500/10 transition-all">
@@ -411,14 +423,14 @@ export default function AdminPanel() {
                       <h3 className="text-xl font-black mb-6 text-slate-800">Categorias</h3>
                       <form onSubmit={addCategory} className="flex gap-2 mb-8">
                          <input required placeholder="Nova Categoria..." className="flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" value={newCat} onChange={e=>setNewCat(e.target.value)} />
-                         <button className="bg-slate-900 text-white px-6 rounded-2xl font-black shadow-lg shadow-slate-900/20">+</button>
+                         <button className="bg-black text-white px-6 rounded-2xl font-black shadow-lg shadow-slate-900/20">+</button>
                       </form>
                     <div className="space-y-3">
                        {categories.map(c => (
                           <div 
                             key={c.id} 
                             onClick={() => setSelectedCategoryId(c.id)}
-                            className={`p-5 rounded-3xl cursor-pointer transition-all border ${selectedCategoryId === c.id ? 'bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/20' : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'}`}
+                            className={`p-5 rounded-3xl cursor-pointer transition-all border ${selectedCategoryId === c.id ? 'bg-primary text-black border-orange-400 shadow-lg shadow-black/20' : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'}`}
                           >
                              <div className="flex justify-between items-center">
                                 <span className="font-black text-sm uppercase">{c.name}</span>
@@ -436,7 +448,7 @@ export default function AdminPanel() {
                             <p className="text-xs text-slate-400 font-bold uppercase">{categories.find(c=>c.id===selectedCategoryId)?.name || 'Todos os itens'}</p>
                         </div>
                         {selectedCategoryId && (
-                            <button onClick={()=>setShowProductModal(true)} className="bg-orange-500 text-white px-6 py-3.5 rounded-2xl font-black text-xs shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all">
+                            <button onClick={()=>setShowProductModal(true)} className="bg-primary text-black px-6 py-3.5 rounded-2xl font-black text-xs shadow-lg shadow-black/20 hover:bg-primary border-black border transition-all">
                                 + NOVO PRODUTO
                             </button>
                         )}
@@ -464,7 +476,7 @@ export default function AdminPanel() {
                                  <div className="bg-slate-50 rounded-3xl p-5 border border-slate-100">
                                     <div className="flex justify-between items-center mb-4">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionais / Extras</p>
-                                        <button onClick={()=>{setCurrentProductId(p.id); setShowExtraModal(true)}} className="text-[10px] font-black text-orange-500 hover:text-orange-600 px-3 py-1 bg-orange-50 rounded-lg">+ ADD NOVO</button>
+                                        <button onClick={()=>{setCurrentProductId(p.id); setShowExtraModal(true)}} className="text-[10px] font-black text-black hover:text-black px-3 py-1 bg-slate-100 rounded-lg">+ ADD NOVO</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {p.extras?.map((ex:any) => (
@@ -521,7 +533,7 @@ export default function AdminPanel() {
                                           <textarea value={newProduct.description} onChange={e=>setNewProduct({...newProduct, description: e.target.value})} className="w-full bg-slate-50 p-5 rounded-[24px] border border-slate-200 focus:border-orange-500 outline-none font-bold h-24" placeholder="Hamburguer 150g, alface, tomate, maionese artesanal..." />
                                       </div>
                                   </div>
-                                  <button className="w-full bg-orange-500 text-white py-6 rounded-3xl font-black shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition-all text-sm tracking-widest uppercase">
+                                  <button className="w-full bg-primary text-black py-6 rounded-3xl font-black shadow-lg shadow-black/20 hover:bg-primary border-black border transition-all text-sm tracking-widest uppercase">
                                       CADASTRAR ITEM AGORA
                                   </button>
                               </form>
@@ -545,7 +557,7 @@ export default function AdminPanel() {
                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-2">Preço (R$)</label>
                                       <input required type="number" step="0.01" value={newExtra.price} onChange={e=>setNewExtra({...newExtra, price: parseFloat(e.target.value)})} className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-200 font-bold" />
                                   </div>
-                                  <button className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all text-xs tracking-widest">
+                                  <button className="w-full bg-black text-white py-5 rounded-2xl font-black shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all text-xs tracking-widest">
                                       CONFIRMAR ADICIONAL
                                   </button>
                               </form>
@@ -559,12 +571,12 @@ export default function AdminPanel() {
                 <div className="space-y-10">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                       <TrendingUp size={24} className="text-orange-500 mb-4"/>
+                       <TrendingUp size={24} className="text-black mb-4"/>
                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Vendas Hoje</p>
                        <h3 className="text-3xl font-black text-slate-800">R$ {orders.reduce((acc,o)=>acc+o.total, 0).toFixed(2)}</h3>
                     </div>
                     <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                       <Clock size={24} className="text-blue-500 mb-4"/>
+                       <Clock size={24} className="text-black mb-4"/>
                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Pedidos Ativos</p>
                        <h3 className="text-3xl font-black text-slate-800">{orders.filter(o=>o.status === 'PENDING').length}</h3>
                     </div>
@@ -622,7 +634,7 @@ export default function AdminPanel() {
                                     <h4 className="text-xl font-black text-slate-800">Pedido #{o.id.slice(-6)}</h4>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(o.created_at).toLocaleTimeString()}</p>
                                 </div>
-                                <span className="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black uppercase tracking-widest">{o.status}</span>
+                                <span className="px-3 py-1 bg-orange-100 text-black rounded-full text-[10px] font-black uppercase tracking-widest">{o.status}</span>
                             </div>
                             <div className="space-y-3 mb-8 bg-slate-50 p-5 rounded-3xl border border-slate-100 shadow-inner">
                                {o.items?.map((it:any) => (
@@ -634,7 +646,7 @@ export default function AdminPanel() {
                             </div>
                             <div className="flex justify-between text-xl font-black text-slate-800 border-t border-slate-100 pt-5">
                                 <span>Total</span>
-                                <span className="text-2xl text-orange-500">R$ {o.total.toFixed(2)}</span>
+                                <span className="text-2xl text-black">R$ {o.total.toFixed(2)}</span>
                             </div>
                          </div>
                          <div className="p-6 bg-slate-50 flex gap-3 mt-auto">
@@ -642,15 +654,15 @@ export default function AdminPanel() {
                                 <button onClick={()=>updateOrderStatus(o.id, 'PREPARING')} className="flex-1 bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all">ACEITAR AGORA</button>
                             )}
                             {o.status === 'PREPARING' && (
-                                 <button onClick={()=>updateOrderStatus(o.id, 'READY_FOR_PICKUP')} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                 <button onClick={()=>updateOrderStatus(o.id, 'READY_FOR_PICKUP')} className="flex-1 bg-black text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
                                      <Truck size={18}/> CHAMAR ENTREGADOR
                                  </button>
                             )}
                             {o.status === 'READY_FOR_PICKUP' && (
-                                <div className="flex-1 text-center py-4 text-orange-600 font-black text-xs uppercase tracking-widest bg-orange-50 rounded-2xl border border-orange-100">Aguardando Motoboy...</div>
+                                <div className="flex-1 text-center py-4 text-black font-black text-xs uppercase tracking-widest bg-slate-100 rounded-2xl border border-orange-100">Aguardando Motoboy...</div>
                             )}
                             {o.status === 'OUT_FOR_DELIVERY' && (
-                                <div className="flex-1 text-center py-4 text-blue-600 font-black text-xs uppercase tracking-widest bg-blue-50 rounded-2xl border border-blue-100">Em Rota de Entrega</div>
+                                <div className="flex-1 text-center py-4 text-black font-black text-xs uppercase tracking-widest bg-slate-100 rounded-2xl border border-blue-100">Em Rota de Entrega</div>
                             )}
                             {o.status === 'DELIVERED' && (
                                 <div className="flex-1 text-center py-4 text-green-600 font-black text-xs uppercase tracking-widest bg-green-50 rounded-2xl border border-green-100">Pedido Entregue</div>
@@ -668,10 +680,10 @@ export default function AdminPanel() {
                         <div className="p-8 border-b border-slate-50 font-black text-slate-800 uppercase tracking-widest text-xs">Conversas Ativas</div>
                         <div className="flex-1 overflow-y-auto">
                             {customers.map(c => (
-                                <div key={c.id} onClick={()=>loadChat(c)} className={`p-6 border-b border-slate-50 cursor-pointer transition-all ${activeChatJid === c.whatsapp_jid ? 'bg-orange-50' : 'hover:bg-slate-50'}`}>
+                                <div key={c.id} onClick={()=>loadChat(c)} className={`p-6 border-b border-slate-50 cursor-pointer transition-all ${activeChatJid === c.whatsapp_jid ? 'bg-slate-100' : 'hover:bg-slate-50'}`}>
                                     <div className="flex justify-between items-center">
                                         <p className="font-black text-slate-800 uppercase tracking-tight">{c.name}</p>
-                                        <p className="text-[9px] font-bold text-slate-400">{c.whatsapp_jid.split('@')[0]}</p>
+                                        <p className="text-[9px] font-bold text-slate-400">{c.whatsapp_jid ? c.whatsapp_jid.split('@')[0] : c.phone}</p>
                                     </div>
                                     <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Status: Atendido</p>
                                 </div>
@@ -684,7 +696,7 @@ export default function AdminPanel() {
                                 <div className="flex-1 p-10 overflow-y-auto space-y-6 scrollbar-hide">
                                     {chatMessages.map((m, idx) => (
                                         <div key={idx} className={`flex ${m.is_from_me ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`p-5 rounded-3xl max-w-lg shadow-sm ${m.is_from_me ? 'bg-orange-500 text-white' : 'bg-white border border-slate-100 text-slate-800'}`}>
+                                            <div className={`p-5 rounded-3xl max-w-lg shadow-sm ${m.is_from_me ? 'bg-primary text-black' : 'bg-white border border-slate-100 text-slate-800'}`}>
                                                 <p className="text-sm leading-relaxed font-bold">{m.text}</p>
                                                 <p className={`text-[9px] mt-2 font-black opacity-50 ${m.is_from_me ? 'text-white' : 'text-slate-400'}`}>
                                                   {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -695,7 +707,7 @@ export default function AdminPanel() {
                                 </div>
                                 <form onSubmit={handleSendMessage} className="p-8 bg-white border-t border-slate-50 flex gap-4">
                                     <input value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Escreva sua mensagem aqui..." className="flex-1 bg-slate-50 px-6 py-4 rounded-2xl border border-slate-200 outline-none focus:border-orange-500 font-bold" />
-                                    <button className="bg-orange-500 text-white px-10 rounded-2xl font-black shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">ENVIAR</button>
+                                    <button className="bg-primary text-black px-10 rounded-2xl font-black shadow-lg shadow-black/20 hover:bg-primary border-black border transition-all">ENVIAR</button>
                                 </form>
                             </>
                         ) : (
@@ -715,10 +727,10 @@ export default function AdminPanel() {
                         <h3 className="text-4xl font-black mb-2 tracking-tighter">Flux Drivers Global 🌐</h3>
                         <p className="opacity-60 text-lg font-medium max-w-md">Gerencie sua rede de entregas em tempo real com rastreamento via WebSocket.</p>
                       </div>
-                      <Truck size={180} className="absolute -right-10 -bottom-10 opacity-10 group-hover:translate-x-4 transition-transform text-orange-500" />
+                      <Truck size={180} className="absolute -right-10 -bottom-10 opacity-10 group-hover:translate-x-4 transition-transform text-black" />
                    </div>
                    <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
-                      <h4 className="font-black text-xl mb-8 flex items-center gap-3"><MapIcon className="text-orange-500"/> Visualização do Campo</h4>
+                      <h4 className="font-black text-xl mb-8 flex items-center gap-3"><MapIcon className="text-black"/> Visualização do Campo</h4>
                       <div className="h-[500px] bg-slate-50 rounded-[40px] overflow-hidden border border-slate-100 shadow-inner translate-z-0">
                          {isLoaded && mapCenter ? (
                             <GoogleMap
@@ -758,7 +770,7 @@ export default function AdminPanel() {
                 <div className="space-y-12">
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                        <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
-                          <BarChart3 size={32} className="text-orange-500 mb-4"/>
+                          <BarChart3 size={32} className="text-black mb-4"/>
                           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Vendas Acumuladas</p>
                           <h3 className="text-4xl font-black text-slate-800">R$ {reportStats?.totalRevenue?.toFixed(2) || '0.00'}</h3>
                        </div>
@@ -782,10 +794,10 @@ export default function AdminPanel() {
                          {reportStats?.daily && Object.keys(reportStats.daily).sort().map(day => (
                             <div key={day} className="flex-1 min-w-[60px] flex flex-col items-center gap-4 group">
                                <div 
-                                 className="w-full bg-orange-500 rounded-3xl transition-all group-hover:bg-orange-600 relative cursor-pointer" 
+                                 className="w-full bg-slate-1000 rounded-3xl transition-all group-hover:bg-primary border-black border relative cursor-pointer" 
                                  style={{ height: `${Math.max(20, (reportStats.daily[day] / Math.max(1, reportStats.totalRevenue || 1)) * 250)}px` }}
                                >
-                                   <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all font-black whitespace-nowrap z-10 shadow-xl border border-white/10">
+                                   <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all font-black whitespace-nowrap z-10 shadow-xl border border-white/10">
                                       R${reportStats.daily[day].toFixed(2)}
                                    </div>
                                </div>
@@ -800,11 +812,11 @@ export default function AdminPanel() {
               {activeTab === 'marketing' && (
                   <div className="space-y-12">
                      <div className="bg-white p-12 rounded-[56px] shadow-sm border border-slate-100">
-                        <h3 className="text-2xl font-black mb-10 flex items-center gap-3 font-bold uppercase tracking-tight text-slate-800"><Ticket size={32} className="text-orange-500"/> Novo Cupom Promocional</h3>
+                        <h3 className="text-2xl font-black mb-10 flex items-center gap-3 font-bold uppercase tracking-tight text-slate-800"><Ticket size={32} className="text-black"/> Novo Cupom Promocional</h3>
                         <form onSubmit={createCoupon} className="grid grid-cols-1 md:grid-cols-4 gap-6">
                            <div className="space-y-2">
                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Código do Cupom</label>
-                             <input placeholder="Ex: PITDOG20" required className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-200 uppercase font-black text-orange-600 outline-none focus:border-orange-500" value={newCoupon.code} onChange={e=>setNewCoupon({...newCoupon, code: e.target.value})} />
+                             <input placeholder="Ex: PITDOG20" required className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-200 uppercase font-black text-black outline-none focus:border-orange-500" value={newCoupon.code} onChange={e=>setNewCoupon({...newCoupon, code: e.target.value})} />
                            </div>
                            <div className="space-y-2">
                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Tipo de Desconto</label>
@@ -818,7 +830,7 @@ export default function AdminPanel() {
                              <input type="number" placeholder="0" required className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-200 font-black" value={newCoupon.value} onChange={e=>setNewCoupon({...newCoupon, value: parseFloat(e.target.value)})} />
                            </div>
                            <div className="flex items-end">
-                             <button className="w-full bg-slate-900 text-white p-5 rounded-3xl font-black shadow-xl hover:bg-slate-800 transition-all uppercase text-xs tracking-widest">Ativar Cupom</button>
+                             <button className="w-full bg-black text-white p-5 rounded-3xl font-black shadow-xl hover:bg-slate-800 transition-all uppercase text-xs tracking-widest">Ativar Cupom</button>
                            </div>
                         </form>
                      </div>
@@ -832,7 +844,7 @@ export default function AdminPanel() {
                                     <button onClick={()=>deleteCoupon(c.id)} className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={18}/></button>
                                  </div>
                                  <div className="relative z-10">
-                                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-4">DESCONTO ATIVO ✨</p>
+                                    <p className="text-[10px] font-black text-black uppercase tracking-widest mb-4">DESCONTO ATIVO ✨</p>
                                     <h4 className="text-4xl font-black text-white mb-8 tracking-tighter">{c.code}</h4>
                                     <div className="flex justify-between items-end border-t border-white/10 pt-8">
                                        <div>
@@ -856,7 +868,7 @@ export default function AdminPanel() {
               {activeTab === 'settings' && (
                  <div className="max-w-4xl mx-auto space-y-12 h-screen">
                     <div className="bg-white p-12 rounded-[56px] shadow-sm border border-slate-100">
-                        <h3 className="text-2xl font-black mb-10 text-slate-800 flex items-center gap-3"><Settings size={28} className="text-orange-500"/> Identidade da Marca</h3>
+                        <h3 className="text-2xl font-black mb-10 text-slate-800 flex items-center gap-3"><Settings size={28} className="text-black"/> Identidade da Marca</h3>
                         <form onSubmit={updateStoreInfo} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-6">
@@ -868,13 +880,13 @@ export default function AdminPanel() {
                                        <div className="w-24 h-24 bg-white rounded-3xl shadow-xl mb-6 flex items-center justify-center overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform">
                                           {logoUrl ? <img src={logoUrl} alt="Preview" className="w-full h-full object-cover" /> : <PlusCircle className="text-slate-200" size={32}/>}
                                        </div>
-                                       <label className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase cursor-pointer hover:bg-orange-500 transition-colors shadow-lg shadow-slate-900/20">
+                                       <label className="bg-black text-white px-8 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase cursor-pointer hover:bg-slate-1000 transition-colors shadow-lg shadow-slate-900/20">
                                           {isUploading ? 'ENVIANDO...' : 'Trocar Logotipo'}
                                           <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
                                        </label>
                                     </div>
                                 </div>
-                                <div className="bg-orange-600 p-12 rounded-[48px] text-white flex flex-col justify-center relative overflow-hidden group">
+                                <div className="bg-primary border-black border p-12 rounded-[48px] text-white flex flex-col justify-center relative overflow-hidden group">
                                     <div className="relative z-10">
                                         <h4 className="text-2xl font-black mb-4 tracking-tighter">Dica de Sucesso 🚀</h4>
                                         <p className="text-orange-100 text-sm leading-relaxed font-bold">Logos redondas ou quadradas funcionam melhor no chat do WhatsApp e na vitrine do seu cardápio digital.</p>
@@ -883,7 +895,7 @@ export default function AdminPanel() {
                                 </div>
                             </div>
                             <div className="pt-8 border-t border-slate-50">
-                                <button disabled={isUpdating} className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black shadow-2xl shadow-orange-500/40 hover:bg-orange-600 transition-all disabled:opacity-50 text-xs tracking-widest uppercase">
+                                <button disabled={isUpdating} className="bg-primary text-black px-12 py-5 rounded-3xl font-black shadow-2xl shadow-black/20 hover:bg-primary border-black border transition-all disabled:opacity-50 text-xs tracking-widest uppercase">
                                     {isUpdating ? 'PROCESSANDO...' : 'SALVAR IDENTIDADE'}
                                 </button>
                             </div>

@@ -208,14 +208,16 @@ export default function DriverPanel() {
   const activeDeliveries = Array.isArray(myDeliveries) ? myDeliveries.filter(d => d.order?.status !== 'DELIVERED') : [];
   const currentRequests = Array.isArray(requests) ? requests.filter(r => r.status === 'PENDING') : [];
 
-  const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
-  };
-
-  if (!driver) return <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-10"><div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mb-4"></div><p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Identificando Motorista...</p></div>;
+  if (!driver) return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-10">
+       <img src="/driver-logo.png" alt="Logo" className="w-32 h-32 rounded-3xl object-contain mb-8 shadow-[0_0_60px_rgba(255,204,0,0.4)] animate-pulse" />
+       <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mb-6"></div>
+       <p className="text-primary font-black uppercase tracking-widest text-[10px]">Identificando Piloto...</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans selection:bg-blue-500/30 overflow-hidden">
+    <div className="min-h-screen bg-slate-100 font-sans selection:bg-slate-1000/30 overflow-hidden">
       
       {/* FULL SCREEN DYNAMIC MAP */}
       <div className="fixed inset-0 z-0">
@@ -247,12 +249,12 @@ export default function DriverPanel() {
           
           {/* FLOATING HEADER */}
           <header className="p-5 flex justify-between items-start pointer-events-auto pt-8">
-              <div className="bg-white/90 backdrop-blur-md px-4 py-3 rounded-full shadow-lg flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-slate-300'}`} />
-                  <h1 className="text-sm font-black italic tracking-tighter text-slate-800">FLUX<span className="text-blue-500">DRIVER</span></h1>
+              <div className="bg-white/90 backdrop-blur-md px-3 py-2 rounded-2xl shadow-lg flex items-center gap-3 border border-slate-100">
+                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isOnline ? 'bg-primary animate-pulse shadow-[0_0_10px_rgba(255,204,0,0.8)]' : 'bg-slate-300'}`} />
+                  <img src="/driver-logo.png" alt="App Logo" className="h-6 w-auto object-contain" />
               </div>
               <div className="flex flex-col gap-2">
-                  <button onClick={toggleOnline} className={`px-5 py-3 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg transition-all ${isOnline ? 'bg-blue-600 text-white' : 'bg-white text-slate-500'}`}>
+                  <button onClick={toggleOnline} className={`px-5 py-3 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg transition-all ${isOnline ? 'bg-primary text-black' : 'bg-white text-slate-500'}`}>
                       {isOnline ? 'EM TURNO' : 'OFFLINE'}
                   </button>
                   <button onClick={() => { localStorage.removeItem('token'); window.location.href='/login/driver'; }} className="bg-white p-3 rounded-full text-slate-400 shadow-lg self-end active:scale-95"><X size={18}/></button>
@@ -283,9 +285,9 @@ export default function DriverPanel() {
                     <button 
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex-1 flex flex-col items-center justify-center gap-1 pb-3 pt-2 font-black text-[10px] tracking-widest transition-all ${activeTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400'}`}
+                      className={`flex-1 flex flex-col items-center justify-center gap-1 pb-3 pt-2 font-black text-[10px] tracking-widest transition-all ${activeTab === tab.id ? 'text-black border-b-2 border-blue-600' : 'text-slate-400'}`}
                     >
-                      <tab.icon size={20} className={activeTab === tab.id ? "text-blue-600" : "text-slate-300"} />
+                      <tab.icon size={20} className={activeTab === tab.id ? "text-black" : "text-slate-300"} />
                       {tab.label}
                     </button>
                   ))}
@@ -295,16 +297,23 @@ export default function DriverPanel() {
                   {activeTab === 'requests' && (
                       <div className="space-y-4">
                           {currentRequests.length === 0 && (
-                              <div className="text-center py-10 opacity-60 flex flex-col items-center">
-                                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4"><Bell size={24}/></div>
-                                  <p className="font-bold text-sm text-slate-500">Procurando viagens...</p>
-                              </div>
+                              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col flex-1 items-center justify-center py-12">
+                                  <div className="relative flex items-center justify-center mb-10 w-32 h-32">
+                                      <div className="absolute w-full h-full bg-primary/20 rounded-full animate-ping"></div>
+                                      <div className="absolute w-24 h-24 bg-primary/40 rounded-full animate-ping" style={{ animationDelay: '0.4s' }}></div>
+                                      <div className="relative w-16 h-16 bg-primary text-black rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(255,204,0,0.6)] z-10">
+                                          <Bell size={28} className="animate-bounce" />
+                                      </div>
+                                  </div>
+                                  <h3 className="font-black text-2xl text-slate-800 tracking-tight text-center">Buscando Corridas</h3>
+                                  <p className="font-medium text-sm text-slate-500 mt-2 text-center max-w-[200px]">Fique online e aguarde ser chamado na sua região.</p>
+                              </motion.div>
                           )}
                           <AnimatePresence>
                             {currentRequests.map(req => (
                                 <motion.div key={req.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white border-2 border-slate-100 p-5 rounded-3xl shadow-sm">
                                   <div className="flex justify-between items-center mb-5">
-                                      <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">NOVA CORRIDA</div>
+                                      <div className="bg-slate-100 text-black px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">NOVA CORRIDA</div>
                                       <span className="text-slate-800 font-black text-2xl">R$ {req.order?.delivery_fee?.toFixed(2) || '0.00'}</span>
                                   </div>
                                   <div className="flex flex-col gap-0 mb-6 relative">
@@ -316,13 +325,13 @@ export default function DriverPanel() {
                                           </div>
                                       </div>
                                       <div className="flex items-center gap-4 py-1 z-10 mt-3">
-                                          <div className="w-3 h-3 bg-blue-500 rounded-sm flex-shrink-0 border-2 border-white ring-2 ring-blue-100" />
+                                          <div className="w-3 h-3 bg-slate-1000 rounded-sm flex-shrink-0 border-2 border-white ring-2 ring-blue-100" />
                                           <div className="flex pr-2 items-center">
                                               <p className="font-regular text-slate-600 text-sm line-clamp-2">{req.order?.delivery_address}</p>
                                           </div>
                                       </div>
                                   </div>
-                                  <button onClick={() => acceptRequest(req.id)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-[12px] tracking-widest uppercase shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all">
+                                  <button onClick={() => acceptRequest(req.id)} className="w-full bg-primary text-black py-4 rounded-2xl font-black text-[12px] tracking-widest uppercase shadow-lg shadow-black/20 active:scale-[0.98] transition-all">
                                       ACEITAR VIAGEM
                                   </button>
                                 </motion.div>
@@ -334,16 +343,19 @@ export default function DriverPanel() {
                   {activeTab === 'active' && (
                       <div className="space-y-4">
                           {activeDeliveries.length === 0 && (
-                              <div className="text-center py-10 opacity-60 flex flex-col items-center">
-                                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4"><Navigation size={24}/></div>
-                                  <p className="font-bold text-sm text-slate-500">Nenhuma viagem ativa.</p>
-                              </div>
+                              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col flex-1 items-center justify-center py-12">
+                                  <div className="w-20 h-20 bg-black text-primary rounded-[28px] rotate-3 flex items-center justify-center mb-6 shadow-2xl shadow-black/20">
+                                      <Navigation size={36} className="-rotate-3" />
+                                  </div>
+                                  <h3 className="font-black text-2xl text-slate-800 tracking-tight text-center">Rota Livre</h3>
+                                  <p className="font-medium text-sm text-slate-500 mt-2 text-center max-w-[220px]">Você concluiu todas as suas entregas. Vá para a aba "Pedidos" para aceitar novas viagens.</p>
+                              </motion.div>
                           )}
                           {activeDeliveries.map(delivery => (
                               <div key={delivery.id} className="bg-white">
                                  <div className="flex justify-between items-center mb-6">
                                      <h3 className="font-black text-2xl text-slate-800">{delivery.order?.customer?.name || 'Cliente'}</h3>
-                                     <button onClick={() => openInMaps(delivery.order.delivery_address)} className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-black text-[10px] uppercase flex items-center gap-2 active:scale-95 shadow-sm border border-blue-100">
+                                     <button onClick={() => openInMaps(delivery.order.delivery_address)} className="bg-slate-100 text-black px-4 py-2 rounded-full font-black text-[10px] uppercase flex items-center gap-2 active:scale-95 shadow-sm border border-blue-100">
                                          <Navigation size={14}/> GPS APP
                                      </button>
                                  </div>
@@ -352,7 +364,7 @@ export default function DriverPanel() {
                                      <p className="font-bold text-slate-700 text-sm leading-tight">{delivery.order?.delivery_address}</p>
                                  </div>
                                  <div className="flex gap-3">
-                                     <button onClick={() => finishDelivery(delivery.id)} className="flex-[3] bg-slate-900 text-white py-4 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                                     <button onClick={() => finishDelivery(delivery.id)} className="flex-[3] bg-black text-white py-4 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
                                          FINALIZAR CORRIDA
                                      </button>
                                      <button className="flex-1 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center active:scale-95 transition-all border border-slate-200">
@@ -370,9 +382,9 @@ export default function DriverPanel() {
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-2">Corridas</p>
                               <p className="text-4xl font-black text-slate-800 mb-2">{activeDeliveries.length}</p>
                           </div>
-                          <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100 shadow-sm text-center">
+                          <div className="bg-slate-100 p-5 rounded-3xl border border-blue-100 shadow-sm text-center">
                               <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 mt-2">Ganhos</p>
-                              <p className="text-2xl font-black text-blue-600 mb-2 mt-4">R$ {(driver.balance || 0).toFixed(2)}</p>
+                              <p className="text-2xl font-black text-black mb-2 mt-4">R$ {(driver.balance || 0).toFixed(2)}</p>
                           </div>
                       </div>
                   )}

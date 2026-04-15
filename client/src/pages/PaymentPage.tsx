@@ -148,7 +148,7 @@ export const PaymentPage = () => {
             <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <h2 className="text-xl font-bold text-slate-800">Carregando dados do plano...</h2>
             <p className="text-slate-500 mt-2">Isso deve levar apenas um momento.</p>
-            <button onClick={() => window.location.reload()} className="mt-6 text-orange-500 font-bold hover:underline">
+            <button onClick={() => window.location.reload()} className="mt-6 text-black font-bold hover:underline">
                 Recarregar Página
             </button>
         </div>
@@ -193,7 +193,7 @@ export const PaymentPage = () => {
                     <button
                         onClick={() => checkPaymentStatus(true)}
                         disabled={verifying}
-                        className="bg-orange-500 text-white px-6 py-4 rounded-2xl font-black w-full shadow-lg shadow-orange-500/20 active:scale-95 transition-all mb-4 disabled:opacity-50"
+                        className="bg-primary text-black px-6 py-4 rounded-2xl font-black w-full shadow-lg shadow-black/20 active:scale-95 transition-all mb-4 disabled:opacity-50"
                     >
                         {verifying ? 'VERIFICANDO...' : 'VERIFICAR PAGAMENTO AGORA'}
                     </button>
@@ -211,7 +211,7 @@ export const PaymentPage = () => {
         <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Plan Summary */}
-                <div className="bg-slate-900 text-white p-8 rounded-2xl h-fit sticky top-8">
+                <div className="bg-black text-white p-8 rounded-2xl h-fit sticky top-8">
                     <h2 className="text-2xl font-bold mb-6">Resumo do Pedido</h2>
                     <div className="mb-8">
                         <span className="text-sm text-slate-400 uppercase tracking-wider">Plano Escolhido</span>
@@ -249,14 +249,14 @@ export const PaymentPage = () => {
                     <div className="flex gap-4 mb-8">
                         <button
                             onClick={() => setBillingType('CREDIT_CARD')}
-                            className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${billingType === 'CREDIT_CARD' ? 'border-primary bg-orange-50 text-primary' : 'border-slate-100 hover:border-slate-200'}`}
+                            className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${billingType === 'CREDIT_CARD' ? 'border-primary bg-slate-100 text-primary' : 'border-slate-100 hover:border-slate-200'}`}
                         >
                             <CreditCard />
                             <span className="font-bold text-sm">Cartão de Crédito</span>
                         </button>
                         <button
                             onClick={() => setBillingType('PIX')}
-                            className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${billingType === 'PIX' ? 'border-primary bg-orange-50 text-primary' : 'border-slate-100 hover:border-slate-200'}`}
+                            className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${billingType === 'PIX' ? 'border-primary bg-slate-100 text-primary' : 'border-slate-100 hover:border-slate-200'}`}
                         >
                             <QrCode />
                             <span className="font-bold text-sm">Pix</span>
@@ -305,7 +305,7 @@ export const PaymentPage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition shadow-lg shadow-primary/30 flex items-center justify-center gap-2"
+                            className="w-full bg-primary text-black font-bold py-4 rounded-xl font-bold text-lg hover:bg-primary border-black border transition shadow-lg shadow-primary/30 flex items-center justify-center gap-2"
                         >
                             {loading ? 'Processando...' : `Pagar R$ ${plan.price}`}
                         </button>

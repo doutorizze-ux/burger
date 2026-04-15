@@ -98,7 +98,7 @@ export const Dashboard = () => {
                             className={clsx(
                                 "flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 group",
                                 location.pathname === item.path
-                                    ? "bg-primary text-white shadow-lg shadow-primary/30"
+                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/30"
                                     : "text-slate-500 hover:bg-white/5 hover:text-white"
                             )}
                         >
@@ -162,7 +162,7 @@ export const Dashboard = () => {
                 {/* Mobile Top Header */}
                 <header className="md:hidden bg-white/80 backdrop-blur-xl border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center shadow-md overflow-hidden">
+                        <div className="w-8 h-8 rounded-lg bg-slate-1000 flex items-center justify-center shadow-md overflow-hidden">
                             {user?.logo_url ? (
                                 <img src={formatImageUrl(user.logo_url)} alt="Logo" className="w-full h-full object-cover" />
                             ) : (
@@ -299,7 +299,7 @@ export const Dashboard = () => {
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className="flex flex-col items-center gap-2 group"
                                     >
-                                        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/60 group-hover:bg-orange-500/20 group-hover:text-orange-500 transition-all border border-white/5">
+                                        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/60 group-hover:bg-slate-1000/20 group-hover:text-black transition-all border border-white/5">
                                             <item.icon size={24} />
                                         </div>
                                         <span className="text-[10px] font-black text-white/40 uppercase tracking-widest text-center">{item.label}</span>
@@ -375,7 +375,7 @@ const Welcome = () => {
                                     <span className="text-sm font-black text-primary uppercase tracking-widest">Oportunidade de Receita</span>
                                 </div>
                                 <p className="text-sm text-slate-300 font-medium leading-relaxed">Você tem <span className="text-white font-black">12 alunos</span> com planos vencendo nos próximos 7 dias. Enviar lembrete automático?</p>
-                                <button onClick={() => alert('🧠 IA ZapFitness: Iniciando processamento de lembretes via WhatsApp para os 12 alunos...')} className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] bg-primary text-white px-6 py-3 rounded-2xl hover:scale-105 transition-all shadow-lg shadow-primary/20">Executar Ação</button>
+                                <button onClick={() => alert('🧠 IA ZapFitness: Iniciando processamento de lembretes via WhatsApp para os 12 alunos...')} className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] bg-primary text-black font-bold px-6 py-3 rounded-2xl hover:scale-105 transition-all shadow-lg shadow-primary/20">Executar Ação</button>
                             </div>
 
                             <div className="bg-white/5 border border-white/5 p-8 rounded-[2.5rem] hover:bg-white/10 transition-all cursor-pointer group/card">
@@ -418,7 +418,7 @@ const Welcome = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="mt-12 p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
+                    <div className="mt-12 p-6 bg-slate-100/50 rounded-3xl border border-blue-100">
                         <p className="text-[11px] font-bold text-blue-800 leading-relaxed italic text-center">
                             "A IA detectou que treinos de quarta-feira têm 20% mais faltas. Considere uma aula especial para este dia."
                         </p>

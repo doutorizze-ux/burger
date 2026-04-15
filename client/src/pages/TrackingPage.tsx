@@ -66,7 +66,7 @@ export default function TrackingPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
-        <header className="bg-orange-600 text-white p-4 text-center shadow-md z-10">
+        <header className="bg-primary text-black p-4 text-center shadow-md z-10">
            <h1 className="font-black text-xl">Rastreio PitDog</h1>
            <p className="text-sm">Pedido #{order.id.slice(-4)}</p>
         </header>
@@ -119,7 +119,7 @@ export default function TrackingPage() {
                <div className="flex bg-slate-50 p-4 rounded-xl border border-slate-100 items-center justify-between">
                    <div>
                        <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
-                       <p className={`font-black ${order.status === 'OUT_FOR_DELIVERY' ? 'text-blue-500' : 'text-orange-500'}`}>
+                       <p className={`font-black ${order.status === 'OUT_FOR_DELIVERY' ? 'text-black' : 'text-black'}`}>
                           {order.status === 'OUT_FOR_DELIVERY' ? 'SAIU PARA ENTREGA' : 'PREPARANDO...'}
                        </p>
                    </div>

@@ -274,7 +274,7 @@ export const Chat = () => {
                                 {selectedMember.bot_paused && (
                                     <button
                                         onClick={handleUnpauseBot}
-                                        className="hidden sm:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                                        className="hidden sm:flex items-center gap-2 bg-primary text-black font-bold px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
                                     >
                                         Encerrar Atendimento
                                     </button>
@@ -342,7 +342,7 @@ export const Chat = () => {
                                                 <div className={clsx(
                                                     "max-w-[70%] p-5 rounded-[2rem] shadow-sm relative group",
                                                     msg.from_me
-                                                        ? "bg-primary text-white rounded-tr-none shadow-primary/20"
+                                                        ? "bg-primary text-black font-bold rounded-tr-none shadow-primary/20"
                                                         : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
                                                 )}>
                                                     <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
@@ -378,7 +378,7 @@ export const Chat = () => {
                                 />
                                 <button
                                     type="submit"
-                                    className="bg-primary text-white p-3 md:p-4 rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all w-10 h-10 md:w-14 md:h-14 flex items-center justify-center shrink-0"
+                                    className="bg-primary text-black font-bold p-3 md:p-4 rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all w-10 h-10 md:w-14 md:h-14 flex items-center justify-center shrink-0"
                                 >
                                     <Send size={18} fill="white" className="md:w-5 md:h-5" />
                                 </button>

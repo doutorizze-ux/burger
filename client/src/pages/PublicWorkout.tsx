@@ -125,7 +125,7 @@ export const PublicWorkout = () => {
                         </div>
 
                         {workout.notes && (
-                            <div className="bg-orange-50 border border-orange-100 p-5 rounded-3xl text-orange-900 text-sm font-medium italic whitespace-pre-wrap">
+                            <div className="bg-slate-100 border border-orange-100 p-5 rounded-3xl text-orange-900 text-sm font-medium italic whitespace-pre-wrap">
                                 " {workout.notes} "
                             </div>
                         )}

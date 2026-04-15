@@ -66,7 +66,7 @@ export const Plans = () => {
                 <button
                     id="btn-new-plan"
                     onClick={() => setShowModal(true)}
-                    className="flex items-center justify-center gap-3 bg-primary text-white px-10 py-5 rounded-[2rem] font-black hover:opacity-90 transition shadow-2xl shadow-primary/30 active:scale-95 text-sm uppercase tracking-widest"
+                    className="flex items-center justify-center gap-3 bg-primary text-black font-bold px-10 py-5 rounded-[2rem] font-black hover:opacity-90 transition shadow-2xl shadow-primary/30 active:scale-95 text-sm uppercase tracking-widest"
                 >
                     <Plus size={24} />
                     NOVO PLANO
@@ -176,7 +176,7 @@ export const Plans = () => {
                             </div>
 
                             <div className="flex flex-col gap-3 pt-4">
-                                <button type="submit" className="w-full bg-primary text-white py-5 rounded-[2rem] font-black hover:opacity-90 shadow-2xl shadow-primary/20 transition-all active:scale-95 text-sm uppercase tracking-widest">
+                                <button type="submit" className="w-full bg-primary text-black font-bold py-5 rounded-[2rem] font-black hover:opacity-90 shadow-2xl shadow-primary/20 transition-all active:scale-95 text-sm uppercase tracking-widest">
                                     CRIAR PLANO AGORA
                                 </button>
                                 <button type="button" onClick={() => setShowModal(false)} className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">

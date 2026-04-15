@@ -151,8 +151,8 @@ export const WhatsAppConnect = () => {
                                     Conecte seu WhatsApp para que o sistema possa enviar treinos, dietas e mensagens de cobrança automaticamente para seus alunos.
                                 </p>
 
-                                <div className="bg-orange-500/5 border border-orange-500/10 p-8 rounded-[2rem] mb-12 flex flex-col gap-4 items-center">
-                                    <div className="flex items-center gap-3 text-orange-600">
+                                <div className="bg-slate-1000/5 border border-orange-500/10 p-8 rounded-[2rem] mb-12 flex flex-col gap-4 items-center">
+                                    <div className="flex items-center gap-3 text-black">
                                         <AlertTriangle size={24} />
                                         <span className="text-sm font-black uppercase tracking-widest">Aviso Importante</span>
                                     </div>
@@ -168,7 +168,7 @@ export const WhatsAppConnect = () => {
                                 <button
                                     onClick={handleConnect}
                                     disabled={loading}
-                                    className="w-full bg-primary text-white px-10 py-6 rounded-[2.5rem] font-black hover:bg-primary/80 shadow-2xl shadow-primary/30 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm uppercase tracking-widest"
+                                    className="w-full bg-primary text-black font-bold px-10 py-6 rounded-[2.5rem] font-black hover:bg-primary/80 shadow-2xl shadow-primary/30 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm uppercase tracking-widest"
                                 >
                                     {loading ? (
                                         <>

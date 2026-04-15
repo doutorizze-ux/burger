@@ -213,9 +213,13 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
 
         // BOT STATE MACHINE
         let mem = botMemory.get(remoteJid);
-        if (!mem || text.toLowerCase().trim() === 'oi' || text.toLowerCase().trim() === 'ola' || text.toLowerCase().trim() === 'voltar') {
+        const isResetKeyword = ['oi', 'olá', 'ola', 'voltar', 'nova compra', 'cancelar'].includes(text.toLowerCase().trim());
+        if (!mem || isResetKeyword) {
             mem = { step: 0, cart: [], categoryId: null, productId: null, finalTotal: 0, address: null, extras: [] };
             botMemory.set(remoteJid, mem);
+            if (isResetKeyword && text.toLowerCase().trim() === 'nova compra') {
+                 await humanizedSendMessage(sock, remoteJid, { text: `Reiniciando o atendimento...` });
+            }
         }
 
         const input = text.trim();
@@ -417,8 +421,7 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
                     }
                     
                     // Use the exact parsed address to calculate the distance matrix
-                    // For the sake of the bot logic, we assume the origin is Goiania as fallback
-                    const origin = encodeURIComponent("Centro, Goiania, GO"); 
+                    const origin = (tenant.latitude && tenant.longitude) ? `${tenant.latitude},${tenant.longitude}` : encodeURIComponent(`${tenant.name}, Centro, Goiania, GO`); 
                     const destination = encodeURIComponent(mem.address);
                     const gmapRes = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${apiKey}`);
                     
@@ -480,8 +483,18 @@ async function handleMessage(tenantId: string, msg: any, sock: WASocket) {
             // Automatically create delivery request
             dispatchDelivery(tenantId, order);
 
-            botMemory.delete(remoteJid);
+            // Move to post-order state instead of deleting
+            mem.step = 7;
+            mem.lastOrderStr = `#${order.id.slice(-4)}`;
+            botMemory.set(remoteJid, mem);
+            
             await humanizedSendMessage(sock, remoteJid, { text: `🎉 *PEDIDO REALIZADO COM SUCESSO!*\nNúmero do pedido: #${order.id.slice(-4)}\n\nNossa cozinha já foi notificada e seu pedido está sendo preparado 🍔.\nVamos começar a disparar chamadas para nossos motoboys e o robô vai te mandar mensagem automática avisando quando sair para entrega!` });
+            return;
+        }
+
+        // Step 7: Post-order
+        if (mem.step === 7) {
+            await humanizedSendMessage(sock, remoteJid, { text: `🤖 Seu pedido *${mem.lastOrderStr}* está sendo preparado!\nEstamos acompanhando e notificaremos quando o entregador for chamado.\n\nSe deseja fazer um *NOVO PEDIDO*, apenas digite *nova compra*.` });
             return;
         }
 

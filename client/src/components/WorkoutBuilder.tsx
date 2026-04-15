@@ -164,7 +164,7 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ memberId, onSave
                             <button onClick={() => setEditingWorkout(null)} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest">
                                 Cancelar
                             </button>
-                            <button onClick={handleSave} className="px-6 py-2 bg-primary text-white text-xs font-black rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 hover:scale-105 transition-all">
+                            <button onClick={handleSave} className="px-6 py-2 bg-primary text-black font-bold text-xs font-black rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 hover:scale-105 transition-all">
                                 <Save size={16} /> SALVAR
                             </button>
                         </div>

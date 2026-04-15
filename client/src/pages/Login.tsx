@@ -35,7 +35,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-orange-500/30 mb-4">🍔</div>
+          <div className="w-16 h-16 bg-slate-1000 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-black/20 mb-4">🍔</div>
           <h2 className="text-2xl font-bold text-gray-800">{isRegister ? 'Criar Loja no PitDog.ai' : 'Painel PitDog'}</h2>
           <p className="text-gray-500">{isRegister ? 'Teste grátis por 7 dias. Sem cartão.' : 'Faça login para gerenciar sua loja'}</p>
         </div>
@@ -54,11 +54,11 @@ export default function Login() {
             <label className="block text-sm font-bold text-gray-700 mb-2">Senha</label>
             <input required type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-orange-500 transition font-medium" />
           </div>
-          <button type="submit" className="w-full bg-orange-500 text-white font-black text-lg py-4 rounded-xl shadow-xl shadow-orange-500/30 hover:bg-orange-600 transition">
+          <button type="submit" className="w-full bg-primary text-black font-black text-lg py-4 rounded-xl shadow-xl shadow-black/20 hover:bg-primary border-black border transition">
             {isRegister ? '🚀 Criar minha Conta' : 'Entrar na Loja'}
           </button>
         </form>
-        <p className="text-center text-sm font-bold text-slate-500 mt-6 cursor-pointer hover:text-orange-500" onClick={()=>setIsRegister(!isRegister)}>
+        <p className="text-center text-sm font-bold text-slate-500 mt-6 cursor-pointer hover:text-black" onClick={()=>setIsRegister(!isRegister)}>
           {isRegister ? 'Já tem uma conta? Fazer Login' : 'Ainda não é assinante? Criar Loja.'}
         </p>
       </div>

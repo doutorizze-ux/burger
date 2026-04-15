@@ -33,8 +33,8 @@ interface Message {
 }
 
 const COLUMNS = [
-    { id: 'new', label: 'INTERESSADOS', color: 'bg-blue-500', lightColor: 'bg-blue-50', textColor: 'text-blue-600', shadow: 'shadow-blue-500/20' },
-    { id: 'contacted', label: 'CONTATO FEITO', color: 'bg-orange-500', lightColor: 'bg-orange-50', textColor: 'text-orange-600', shadow: 'shadow-orange-500/20' },
+    { id: 'new', label: 'INTERESSADOS', color: 'bg-slate-1000', lightColor: 'bg-slate-100', textColor: 'text-black', shadow: 'shadow-black/20' },
+    { id: 'contacted', label: 'CONTATO FEITO', color: 'bg-slate-1000', lightColor: 'bg-slate-100', textColor: 'text-black', shadow: 'shadow-black/20' },
     { id: 'trial', label: 'AULA EXPERIMENTAL', color: 'bg-purple-500', lightColor: 'bg-purple-50', textColor: 'text-purple-600', shadow: 'shadow-purple-500/20' },
     { id: 'won', label: 'MATRICULADO', color: 'bg-green-500', lightColor: 'bg-green-50', textColor: 'text-green-600', shadow: 'shadow-green-500/20' },
     { id: 'lost', label: 'PERDIDO', color: 'bg-slate-500', lightColor: 'bg-slate-50', textColor: 'text-slate-600', shadow: 'shadow-slate-500/20' },
@@ -227,7 +227,7 @@ export const Leads = () => {
                     <button
                         id="btn-new-lead"
                         onClick={() => { setModalLead({ status: 'new' }); setShowLeadModal(true); }}
-                        className="flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all"
+                        className="flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-black font-bold rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all"
                     >
                         <Plus size={20} strokeWidth={3} />
                         Novo Lead
@@ -254,16 +254,16 @@ export const Leads = () => {
                     >
                         <div className="flex items-center justify-between mb-2 md:mb-4">
                             <div className={clsx("w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl flex items-center justify-center",
-                                stat.color === 'blue' ? "bg-blue-50 text-blue-500" :
-                                    stat.color === 'orange' ? "bg-orange-50 text-orange-500" :
+                                stat.color === 'blue' ? "bg-slate-100 text-black" :
+                                    stat.color === 'orange' ? "bg-slate-100 text-black" :
                                         stat.color === 'purple' ? "bg-purple-50 text-purple-500" :
                                             "bg-green-50 text-green-500"
                             )}>
                                 <stat.icon size={16} className="md:w-6 md:h-6" />
                             </div>
                             <span className={clsx("text-[8px] md:text-[10px] font-black uppercase tracking-widest",
-                                stat.color === 'blue' ? "text-blue-500" :
-                                    stat.color === 'orange' ? "text-orange-500" :
+                                stat.color === 'blue' ? "text-black" :
+                                    stat.color === 'orange' ? "text-black" :
                                         stat.color === 'purple' ? "text-purple-500" :
                                             "text-green-500"
                             )}>{stat.label}</span>
@@ -283,7 +283,7 @@ export const Leads = () => {
                         onClick={() => setStatusFilter(null)}
                         className={clsx(
                             "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
-                            !statusFilter ? "bg-slate-900 text-white shadow-lg" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
+                            !statusFilter ? "bg-black text-white shadow-lg" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
                         )}
                     >
                         Todos
@@ -415,7 +415,7 @@ export const Leads = () => {
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${lead.phone}`, '_blank'); }}
-                                                            className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                                                            className="w-10 h-10 bg-slate-100 text-black rounded-2xl hover:bg-primary border-black border hover:text-white transition-all flex items-center justify-center shadow-sm"
                                                         >
                                                             <Phone size={16} />
                                                         </button>
@@ -642,7 +642,7 @@ export const Leads = () => {
                                             <div className={clsx(
                                                 "max-w-[85%] p-5 rounded-3xl shadow-sm text-sm font-medium leading-relaxed mb-1 relative group",
                                                 msg.from_me
-                                                    ? "bg-slate-900 text-white rounded-tr-none shadow-xl shadow-slate-900/10"
+                                                    ? "bg-black text-white rounded-tr-none shadow-xl shadow-slate-900/10"
                                                     : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
                                             )}>
                                                 {msg.content}
@@ -674,7 +674,7 @@ export const Leads = () => {
                                     <button
                                         disabled={!newMessage.trim() || sending}
                                         type="submit"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-primary text-white rounded-[1.2rem] flex items-center justify-center shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-primary text-black font-bold rounded-[1.2rem] flex items-center justify-center shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                                     >
                                         <Send size={22} className={clsx(sending && "animate-pulse")} />
                                     </button>
@@ -779,7 +779,7 @@ export const Leads = () => {
                                     <div className="pt-6">
                                         <button
                                             type="submit"
-                                            className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black shadow-2xl shadow-slate-900/30 hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm uppercase tracking-[0.2em]"
+                                            className="w-full py-5 bg-black text-white rounded-[1.5rem] font-black shadow-2xl shadow-slate-900/30 hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm uppercase tracking-[0.2em]"
                                         >
                                             {modalLead?.id ? 'Atualizar Lead' : 'Cadastrar Lead'}
                                         </button>

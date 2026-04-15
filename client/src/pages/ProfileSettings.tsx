@@ -233,7 +233,7 @@ export const ProfileSettings = () => {
                             className={clsx(
                                 "flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all whitespace-nowrap text-sm uppercase tracking-widest",
                                 activeTab === tab.id
-                                    ? "bg-primary text-white shadow-xl shadow-primary/30"
+                                    ? "bg-primary text-black font-bold shadow-xl shadow-primary/30"
                                     : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm"
                             )}
                         >
@@ -369,7 +369,7 @@ export const ProfileSettings = () => {
                                     <button
                                         disabled={loading}
                                         type="submit"
-                                        className="bg-primary text-white px-12 py-5 rounded-[2rem] font-black hover:opacity-90 shadow-2xl shadow-primary/30 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-3 text-sm uppercase tracking-widest"
+                                        className="bg-primary text-black font-bold px-12 py-5 rounded-[2rem] font-black hover:opacity-90 shadow-2xl shadow-primary/30 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-3 text-sm uppercase tracking-widest"
                                     >
                                         {loading ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
                                         SALVAR ALTERAÇÕES
@@ -419,7 +419,7 @@ export const ProfileSettings = () => {
                                     <button
                                         disabled={loading}
                                         type="submit"
-                                        className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black hover:bg-black shadow-xl shadow-slate-900/20 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
+                                        className="bg-black text-white px-10 py-4 rounded-2xl font-black hover:bg-black shadow-xl shadow-slate-900/20 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
                                     >
                                         {loading ? <RefreshCw className="animate-spin" size={20} /> : <Lock size={20} />}
                                         ATUALIZAR SENHA
@@ -520,7 +520,7 @@ export const ProfileSettings = () => {
                                     <button
                                         disabled={loading}
                                         type="submit"
-                                        className="bg-primary text-white px-10 py-4 rounded-2xl font-black hover:bg-primary/90 shadow-xl shadow-primary/20 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
+                                        className="bg-primary text-black font-bold px-10 py-4 rounded-2xl font-black hover:bg-primary/90 shadow-xl shadow-primary/20 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
                                     >
                                         {loading ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
                                         SALVAR OPERACIONAL
@@ -569,7 +569,7 @@ export const ProfileSettings = () => {
                                     <button
                                         disabled={loading}
                                         type="submit"
-                                        className="bg-primary text-white px-10 py-4 rounded-2xl font-black hover:bg-primary/90 shadow-xl shadow-primary/20 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
+                                        className="bg-primary text-black font-bold px-10 py-4 rounded-2xl font-black hover:bg-primary/90 shadow-xl shadow-primary/20 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
                                     >
                                         {loading ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
                                         SALVAR MENSAGENS
@@ -623,7 +623,7 @@ export const ProfileSettings = () => {
                                         <p className="text-slate-500 font-medium mb-4">Deseja liberar mais alunos ou funcionalidades?</p>
                                         <button
                                             onClick={() => window.open('https://wa.me/5562995347257?text=Quero%20fazer%20upgrade%20do%20meu%20plano%20ZapFitness', '_blank')}
-                                            className="bg-primary text-white px-8 py-4 rounded-xl font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 inline-flex items-center gap-2"
+                                            className="bg-primary text-black font-bold px-8 py-4 rounded-xl font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 inline-flex items-center gap-2"
                                         >
                                             <MessageSquare size={20} />
                                             FALAR COM O SUPORTE

@@ -169,7 +169,7 @@ Domingo:
                     <button
                         id="btn-new-member"
                         onClick={openForCreate}
-                        className="flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all text-sm"
+                        className="flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-black font-bold rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all text-sm"
                     >
                         <Plus size={20} strokeWidth={3} />
                         Novo Membro
@@ -251,7 +251,7 @@ Domingo:
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleEdit(member); }}
-                                                className="p-3 bg-blue-50 text-blue-600 rounded-xl"
+                                                className="p-3 bg-slate-100 text-black rounded-xl"
                                             >
                                                 <Pencil size={18} />
                                             </button>
@@ -315,7 +315,7 @@ Domingo:
                                                     }} className="p-4 bg-white shadow-sm border border-slate-50 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-2xl transition-all" title="Enviar no WhatsApp">
                                                         <Send size={20} />
                                                     </button>
-                                                    <button onClick={() => handleEdit(member)} className="p-4 bg-white shadow-sm border border-slate-50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-2xl transition-all" title="Editar">
+                                                    <button onClick={() => handleEdit(member)} className="p-4 bg-white shadow-sm border border-slate-50 text-black hover:bg-slate-1000 hover:text-white rounded-2xl transition-all" title="Editar">
                                                         <Pencil size={20} />
                                                     </button>
                                                     <button onClick={() => handleDelete(member.id, member.name)} className="p-4 bg-white shadow-sm border border-slate-50 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all" title="Excluir">
@@ -344,7 +344,7 @@ Domingo:
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{editingId ? formData.name : 'Cadastro Inteligente'}</p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <button type="button" onClick={handleSubmit} className="bg-primary text-white px-10 py-5 rounded-[2rem] font-black transition shadow-2xl shadow-primary/30 active:scale-95 text-sm uppercase tracking-widest">
+                                <button type="button" onClick={handleSubmit} className="bg-primary text-black font-bold px-10 py-5 rounded-[2rem] font-black transition shadow-2xl shadow-primary/30 active:scale-95 text-sm uppercase tracking-widest">
                                     SALVAR ALTERAÇÕES
                                 </button>
                                 <button onClick={() => setShowModal(false)} className="p-3 bg-slate-100 text-slate-400 rounded-2xl hover:bg-slate-200 transition flex items-center justify-center">
@@ -445,7 +445,7 @@ Domingo:
                                                         <button type="button" onClick={generateAIWorkout} className="flex-1 sm:flex-none text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-primary to-orange-400 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:scale-105 transition shadow-lg shadow-primary/20">
                                                             <Brain size={14} /> Sugestão IA
                                                         </button>
-                                                        <button type="button" onClick={() => insertTemplate('workout')} className="flex-1 sm:flex-none text-[10px] font-black uppercase tracking-widest bg-slate-900 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition">
+                                                        <button type="button" onClick={() => insertTemplate('workout')} className="flex-1 sm:flex-none text-[10px] font-black uppercase tracking-widest bg-black text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition">
                                                             <Calendar size={14} /> Modelo
                                                         </button>
                                                     </div>
@@ -472,7 +472,7 @@ Domingo:
                                 <div className="h-full flex flex-col space-y-4">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                                         <span className="text-sm font-medium text-slate-400">O plano alimentar será enviado junto com o treino.</span>
-                                        <button type="button" onClick={() => insertTemplate('diet')} className="w-full sm:w-auto text-[10px] font-black uppercase tracking-widest bg-slate-900 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition">
+                                        <button type="button" onClick={() => insertTemplate('diet')} className="w-full sm:w-auto text-[10px] font-black uppercase tracking-widest bg-black text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition">
                                             <Calendar size={14} /> Usar Modelo Semanal
                                         </button>
                                     </div>

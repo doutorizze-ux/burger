@@ -86,7 +86,7 @@ export const Exercises = () => {
                 </div>
                 <button
                     onClick={() => { setEditingExercise({ name: '', category: 'Peito' }); setShowModal(true); }}
-                    className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all text-sm uppercase tracking-widest"
+                    className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-black font-bold rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all text-sm uppercase tracking-widest"
                 >
                     <Plus size={20} strokeWidth={3} />
                     ADICIONAR EXERCÍCIO
@@ -111,7 +111,7 @@ export const Exercises = () => {
                         onClick={() => setFilterCategory(null)}
                         className={clsx(
                             "px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border",
-                            !filterCategory ? "bg-slate-900 text-white border-slate-900 shadow-lg" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                            !filterCategory ? "bg-black text-white border-slate-900 shadow-lg" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                         )}
                     >
                         Todos
@@ -122,7 +122,7 @@ export const Exercises = () => {
                             onClick={() => setFilterCategory(cat)}
                             className={clsx(
                                 "px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border",
-                                filterCategory === cat ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                filterCategory === cat ? "bg-primary text-black font-bold border-primary shadow-lg shadow-primary/20" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                             )}
                         >
                             {cat}
@@ -173,7 +173,7 @@ export const Exercises = () => {
                                     <Dumbbell size={24} />
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => { setEditingExercise(ex); setShowModal(true); }} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition">
+                                    <button onClick={() => { setEditingExercise(ex); setShowModal(true); }} className="p-2 hover:bg-slate-100 text-black rounded-lg transition">
                                         <Pencil size={18} />
                                     </button>
                                     <button onClick={() => handleDelete(ex.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition">
@@ -228,7 +228,7 @@ export const Exercises = () => {
                                     </td>
                                     <td className="px-8 py-5 text-right">
                                         <div className="flex gap-2 justify-end">
-                                            <button onClick={() => { setEditingExercise(ex); setShowModal(true); }} className="p-2 text-slate-400 hover:text-blue-500 transition">
+                                            <button onClick={() => { setEditingExercise(ex); setShowModal(true); }} className="p-2 text-slate-400 hover:text-black transition">
                                                 <Pencil size={20} />
                                             </button>
                                             <button onClick={() => handleDelete(ex.id)} className="p-2 text-slate-400 hover:text-red-500 transition">
@@ -310,7 +310,7 @@ export const Exercises = () => {
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-primary text-white py-5 rounded-[2rem] font-black shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-widest"
+                                    className="w-full bg-primary text-black font-bold py-5 rounded-[2rem] font-black shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-widest"
                                 >
                                     SALVAR EXERCÍCIO
                                 </button>

@@ -1,3 +1,5 @@
+import colors from "tailwindcss/colors";
+
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -8,7 +10,8 @@ export default {
         extend: {
             colors: {
                 primary: "rgb(var(--primary-rgb) / <alpha-value>)",
-                secondary: "#1e293b",
+                secondary: "#000000",
+                orange: colors.yellow,
             }
         },
     },

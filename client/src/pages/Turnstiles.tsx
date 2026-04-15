@@ -290,7 +290,7 @@ export const Turnstiles = () => {
                                                 <div className="flex flex-col sm:flex-row gap-3">
                                                     <button
                                                         onClick={handleDownloadZip}
-                                                        className="flex-1 bg-primary text-white p-4 rounded-xl font-black flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 text-[10px] uppercase tracking-widest"
+                                                        className="flex-1 bg-primary text-black font-bold p-4 rounded-xl font-black flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 text-[10px] uppercase tracking-widest"
                                                     >
                                                         <Download size={16} />
                                                         Baixar Instalador Windows (ZIP)
@@ -370,7 +370,7 @@ export const Turnstiles = () => {
 
                         {/* Summary Footer */}
                         <div className="mt-8 pt-8 border-t border-slate-100">
-                            <div className="bg-orange-500 p-8 rounded-[2rem] text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
+                            <div className="bg-slate-1000 p-8 rounded-[2rem] text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
                                 <div className="relative z-10">
                                     <ShieldCheck className="mb-4 opacity-80" size={24} />
                                     <p className="text-xs font-black uppercase tracking-widest mb-1">Status de Proteção</p>

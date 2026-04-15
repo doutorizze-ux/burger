@@ -83,7 +83,7 @@ export const Finance = () => {
                         <div className={clsx(
                             "w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110",
                             stat.color === 'primary' ? "bg-primary/10 text-primary" :
-                                stat.color === 'blue' ? "bg-blue-500/10 text-blue-500" :
+                                stat.color === 'blue' ? "bg-slate-1000/10 text-black" :
                                     "bg-red-500/10 text-red-500"
                         )}>
                             <stat.icon size={24} className="md:w-8 md:h-8" />
@@ -132,7 +132,7 @@ export const Finance = () => {
                                         "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
                                         inv.status === 'PAID' ? "bg-green-500/10 text-green-600 border-green-500/20" :
                                             new Date(inv.due_date) < new Date() ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                                                "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                                "bg-slate-1000/10 text-black border-blue-500/20"
                                     )}>
                                         {inv.status === 'PAID' ? 'Pago' : (new Date(inv.due_date) < new Date() ? 'Atrasado' : 'Pendente')}
                                     </div>
@@ -195,7 +195,7 @@ export const Finance = () => {
                                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
                                             inv.status === 'PAID' ? "bg-green-500/10 text-green-600 border-green-500/20" :
                                                 new Date(inv.due_date) < new Date() ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                                                    "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                                    "bg-slate-1000/10 text-black border-blue-500/20"
                                         )}>
                                             {inv.status === 'PAID' ? 'Pago' : (new Date(inv.due_date) < new Date() ? 'Atrasado' : 'Pendente')}
                                         </span>

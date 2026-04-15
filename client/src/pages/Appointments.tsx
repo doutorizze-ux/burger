@@ -184,7 +184,7 @@ export const Appointments = () => {
                         onClick={() => setViewMode('daily')}
                         className={clsx(
                             "px-8 py-4 rounded-[1.5rem] font-black transition-all flex items-center gap-3 text-xs uppercase tracking-widest",
-                            viewMode === 'daily' ? "bg-primary text-white shadow-xl shadow-primary/30" : "text-slate-400 hover:text-slate-600"
+                            viewMode === 'daily' ? "bg-primary text-black font-bold shadow-xl shadow-primary/30" : "text-slate-400 hover:text-slate-600"
                         )}
                     >
                         <CalendarDays size={18} />
@@ -194,7 +194,7 @@ export const Appointments = () => {
                         onClick={() => setViewMode('fixed')}
                         className={clsx(
                             "px-8 py-4 rounded-[1.5rem] font-black transition-all flex items-center gap-3 text-xs uppercase tracking-widest",
-                            viewMode === 'fixed' ? "bg-primary text-white shadow-xl shadow-primary/30" : "text-slate-400 hover:text-slate-600"
+                            viewMode === 'fixed' ? "bg-primary text-black font-bold shadow-xl shadow-primary/30" : "text-slate-400 hover:text-slate-600"
                         )}
                     >
                         <Repeat size={18} />
@@ -224,7 +224,7 @@ export const Appointments = () => {
 
             <button
                 onClick={() => setShowModal(true)}
-                className="w-full mb-12 bg-primary text-white p-7 rounded-[2.5rem] font-black hover:opacity-90 transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-4 active:scale-[0.98] text-sm uppercase tracking-widest"
+                className="w-full mb-12 bg-primary text-black font-bold p-7 rounded-[2.5rem] font-black hover:opacity-90 transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-4 active:scale-[0.98] text-sm uppercase tracking-widest"
             >
                 <Plus size={24} />
                 {viewMode === 'daily' ? 'ADICIONAR NOVO COMPROMISSO' : 'CADASTRAR NOVO HORÁRIO RECORRENTE'}
@@ -273,7 +273,7 @@ export const Appointments = () => {
                                     <div className="flex items-center gap-2">
                                         <span className={clsx(
                                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                            item.type === 'TREINO' ? 'bg-blue-50 text-blue-500' :
+                                            item.type === 'TREINO' ? 'bg-slate-100 text-black' :
                                                 item.type === 'AVALIAÇÃO' ? 'bg-purple-50 text-purple-500' : 'bg-primary/10 text-primary'
                                         )}>
                                             {item.type}
@@ -432,7 +432,7 @@ export const Appointments = () => {
                                 <button
                                     type="submit"
                                     disabled={!formData.member_id}
-                                    className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-primary/30 hover:opacity-90 transition-all disabled:opacity-50 active:scale-95"
+                                    className="w-full bg-primary text-black font-bold py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-primary/30 hover:opacity-90 transition-all disabled:opacity-50 active:scale-95"
                                 >
                                     CONFIRMAR AGENDAMENTO
                                 </button>
